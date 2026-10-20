@@ -6,6 +6,7 @@
   const VIDEOS_URL = 'dados/videos.json'; // gerado pela automação do GitHub a partir do feed do canal
   const FOTOS_URL = 'dados/fotos.json'; // miniaturas da EA por nome; a coluna Foto da planilha tem prioridade
   const CLUBES_URL = 'dados/clubes.json'; // escudos, estádios e logos de campeonatos (Wikidata); a aba Clubes tem prioridade
+  const FOTOS_CORPO_URL = 'dados/fotos-corpo.json'; // foto de corpo inteiro, usada no card do artilheiro
   const TREINADOR_URL = 'dados/treinador.json';
   const $app = document.getElementById('app');
   const $avisos = document.getElementById('avisos');
@@ -110,7 +111,7 @@
 
   // ---------- modelo ----------
   function build(wb, extras) {
-    const { videos, fotos, clubesJson, treinador } = extras;
+    const { videos, fotos, clubesJson, treinador, fotosCorpo } = extras;
     const cfg = {};
     sheet(wb, 'Clube').forEach(r => { if (r.chave) cfg[norm(r.chave)] = r.valor; });
 
@@ -173,6 +174,7 @@
     const competicoes = new Map(Object.entries((clubesJson && clubesJson.competicoes) || {}).map(([k, v]) => [norm(k), v.logo || '']));
 
     const fotosMap = new Map(Object.entries(fotos || {}).map(([k, v]) => [norm(k), String(v || '')]));
+    const fotosCorpoMap = new Map(Object.entries(fotosCorpo || {}).map(([k, v]) => [norm(k), String(v || '')]));
     // Chegada/Saida são números de episódio; o Sheets às vezes converte "1/10" em data (número grande).
     const epNum = (v, jogador, coluna) => {
       const n = num(v);
@@ -196,7 +198,7 @@
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
         origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida'),
-        ...situacao(r), situacaoManual: !!situacao(r).situacao, foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
+        ...situacao(r), situacaoManual: !!situacao(r).situacao, doElenco: true, foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
       });
     });
 
@@ -247,7 +249,7 @@
     const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
 
     return {
-      cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, clubes, competicoes, transfers, treinador,
+      cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, fotosCorpoMap, clubes, competicoes, transfers, treinador,
       recordes, metas, titulos, seasons, temporadaAtual, warnings,
       // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
       totalTimes: num(cfg.totaltimes) ?? 18,
@@ -452,33 +454,50 @@
     </div>`;
   }
 
-  function positionChart(M) {
-    const pts = M.tableEps.map(ep => ({ ep, row: clubRow(M, ep), n: M.tables.get(ep).length })).filter(p => p.row);
-    if (!pts.length) return '<p class="mudo">A evolução aparece quando houver classificação na planilha.</p>';
-    const nTeams = Math.max(M.totalTimes, ...pts.map(p => p.n), ...pts.map(p => p.row.pos));
-    const W = 640, H = 240, l = 40, r = 20, t = 18, b = 32;
-    const x = i => pts.length === 1 ? (l + W - r) / 2 : l + i * (W - l - r) / (pts.length - 1);
-    const y = pos => t + (pos - 1) * (H - t - b) / Math.max(1, nTeams - 1);
-    const z = M.zonas;
-    const ticks = [1, z.acesso, z.reb, nTeams].filter((v, i, a) => v >= 1 && v <= nTeams && a.indexOf(v) === i);
-    const path = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.row.pos).toFixed(1)}`).join(' ');
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Posição do ${esc(M.clube)} ao final de cada episódio">
-      <rect class="faixa-up" x="${l}" y="${t - 8}" width="${W - l - r}" height="${y(z.acesso) - t + 16}" rx="6"/>
-      <rect class="faixa-down" x="${l}" y="${y(z.reb) - 8}" width="${W - l - r}" height="${y(nTeams) - y(z.reb) + 16}" rx="6"/>
-      ${ticks.map(v => `<line class="grade" x1="${l}" x2="${W - r}" y1="${y(v)}" y2="${y(v)}"/><text class="eixo" x="${l - 10}" y="${y(v) + 4}" text-anchor="end">${v}º</text>`).join('')}
-      <path class="linha" d="${path}"/>
-      ${pts.map((p, i) => `<circle class="ponto" cx="${x(i)}" cy="${y(p.row.pos)}" r="6"><title>EP ${p.ep}: ${p.row.pos}º · ${p.row.pts} pts</title></circle>
-        <text class="rotulo" x="${x(i)}" y="${y(p.row.pos) + (p.row.pos > nTeams / 2 ? -14 : 22)}" text-anchor="middle">${p.row.pos}º</text>
-        <text class="eixo" x="${x(i)}" y="${H - 8}" text-anchor="middle">EP ${p.ep}</text>`).join('')}
-    </svg>`;
+  // Artilheiro da temporada: usa a foto de corpo inteiro (fotos-corpo.json) quando existir.
+  function scorerCard(M, art, jogos) {
+    if (!art) return '<div class="card"><h3>Artilheiro da temporada</h3><p class="mudo">Aparece quando houver gols registrados.</p></div>';
+    const corpo = M.fotosCorpoMap.get(norm(art.nome));
+    const media = jogos ? (art.g / jogos).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '0';
+    return `<div class="card artilheiro">
+      <div class="artilheiro-texto">
+        <small class="sobretitulo">Artilheiro da temporada</small>
+        <h2>${esc(art.nome)}</h2>
+        <span class="artilheiro-info">${[art.pos, art.nac].filter(Boolean).map(esc).join(' · ')}</span>
+        <div class="artilheiro-numeros">
+          <div><strong>${art.g}</strong><small>gols</small></div>
+          <div><strong>${art.a}</strong><small>assist.</small></div>
+          <div><strong>${media}</strong><small>gols por jogo</small></div>
+        </div>
+        <a class="botao secundario" href="#jogadores">Todos os jogadores →</a>
+      </div>
+      <div class="artilheiro-foto">${corpo ? `<img src="${esc(corpo)}" alt="${esc(art.nome)}" onerror="this.remove()">` : avatar(art, 'gigante')}</div>
+    </div>`;
+  }
+
+  // Fotos do treinador alternando a cada 10 segundos (o timer é refeito a cada render).
+  let slideTimer = null;
+  function startSlides() {
+    clearInterval(slideTimer);
+    const slides = [...$app.querySelectorAll('.treinador-foto img')];
+    if (slides.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let i = 0;
+    slideTimer = setInterval(() => {
+      const vivos = slides.filter(s => s.isConnected);
+      if (vivos.length < 2) return clearInterval(slideTimer);
+      vivos[i % vivos.length].classList.remove('ativo');
+      i++;
+      vivos[i % vivos.length].classList.add('ativo');
+    }, 10000);
   }
 
   function coachSection(M) {
     const t = M.treinador;
     if (!t || !t.nome) return '';
-    const img = t.imagem ? `<img src="${esc(t.imagem)}" alt="${esc(t.nome)}" loading="lazy" onerror="this.remove()">` : '';
+    const imagens = Array.isArray(t.imagens) ? t.imagens : t.imagem ? [{ src: t.imagem }] : [];
+    const imgs = imagens.map((im, i) => `<img class="${i === 0 ? 'ativo' : ''}" src="${esc(im.src)}" alt="${esc(t.nome)}" style="object-position:${esc(im.posicao || 'center')}" onerror="this.remove()">`).join('');
     return `<section class="secao card treinador">
-      <div class="treinador-foto"><span>${esc(initials(t.nome))}</span>${img}</div>
+      <div class="treinador-foto"><span>${esc(initials(t.nome))}</span>${imgs}</div>
       <div class="treinador-texto">
         <small class="sobretitulo">${esc(t.cargo || 'O treinador')}</small>
         <h2>${esc(t.nome)}</h2>
@@ -536,12 +555,12 @@
         <div class="card stat"><small>Posição atual</small><strong>${me ? ordinal(me.pos) : '—'}</strong><span>${me ? `${me.pts} pts · ${esc(M.liga)}` : 'sem tabela'}</span></div>
         <div class="card stat"><small>Campanha na temporada</small><strong>${v}V ${e}E ${d}D</strong><div class="forma" aria-label="Últimos jogos">${forma}</div></div>
         <div class="card stat"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(season.length, 'jogo', 'jogos')}</span></div>
-        <div class="card stat"><small>Artilheiro da temporada</small><strong>${art ? art.g : 0}</strong><span>${art ? esc(art.nome) : '—'}${gar ? ` · Garçom: ${esc(gar.nome)} (${gar.a})` : ''}</span></div>
+        <div class="card stat"><small>Garçom da temporada</small><strong>${gar ? gar.a : 0}</strong><span>${gar ? `${esc(gar.nome)} · assistências` : '—'}</span></div>
       </section>
 
       <section class="secao grid grid-2">
         ${tableCard(M)}
-        <div class="card grafico"><div class="secao-topo"><h3>Evolução na tabela</h3><a href="#jogos">Todos os jogos →</a></div>${positionChart(M)}</div>
+        ${scorerCard(M, art, season.length)}
       </section>
 
       ${last ? `<section class="secao"><div class="secao-topo"><h2>Último episódio</h2><a href="#episodios">Todos os episódios →</a></div>${episodeCard(M, last)}</section>` : ''}
@@ -613,15 +632,36 @@
         <label>Mostrar <select id="sel-mostrar">${Object.entries(MOSTRAR).map(([k, [label]]) => `<option value="${k}" ${k === ui.mostrar ? 'selected' : ''}>${label}</option>`).join('')}</select></label></div>
       </div>
       <div class="grid grid-4" style="margin-bottom:16px">
-        <div class="card stat"><small>Artilheiro</small><strong>${tg ? tg.g : 0}</strong><span>${tg ? esc(tg.nome) : '—'}</span></div>
-        <div class="card stat"><small>Garçom</small><strong>${ta ? ta.a : 0}</strong><span>${ta ? esc(ta.nome) : '—'}</span></div>
-        <div class="card stat"><small>Participações em gols</small><strong>${tga ? tga.ga : 0}</strong><span>${tga ? esc(tga.nome) : '—'}</span></div>
+        ${destaque('Artilheiro', tg, 'g')}
+        ${destaque('Garçom', ta, 'a')}
+        ${destaque('Participações em gols', tga, 'ga')}
         ${base.length ? `<div class="card stat"><small>Crias da base</small><strong>${plural(base.length, 'jogador', 'jogadores')}</strong><span>${plural(base.reduce((s, p) => s + p.g, 0), 'gol', 'gols')} · ${plural(base.reduce((s, p) => s + p.a, 0), 'assistência', 'assistências')}</span></div>` : ''}
       </div>
       <div class="tabela-wrap"><table>
         <thead><tr>${th('nome', 'Jogador', 'esq')}<th>Pos</th><th class="esq">País</th>${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
         <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
-      </table></div>`;
+      </table></div>
+      ${nationalities(M)}`;
+  }
+
+  function destaque(rotulo, p, key) {
+    return `<div class="card stat destaque"><small>${rotulo}</small>
+      <div class="destaque-linha">${p ? avatar(p, 'medio') : ''}<div><strong>${p ? p[key] : 0}</strong><span>${p ? esc(p.nome) : '—'}</span></div></div>
+    </div>`;
+  }
+
+  // Elenco atual (aba Elenco, sem quem saiu) agrupado por nacionalidade.
+  function nationalities(M) {
+    const atuais = [...M.elenco.values()].filter(p => p.doElenco && !p.situacao);
+    if (!atuais.length) return '';
+    const cont = new Map();
+    atuais.forEach(p => { const n = p.nac || 'Não informado'; cont.set(n, (cont.get(n) || 0) + 1); });
+    const lista = [...cont.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
+    const max = lista[0][1];
+    return `<section class="secao card">
+      <div class="secao-topo"><h3>Elenco por nacionalidade</h3><span class="mudo">${plural(atuais.length, 'jogador', 'jogadores')} · ${plural(lista.length, 'país', 'países')}</span></div>
+      <ul class="nacionalidades">${lista.map(([n, c]) => `<li><span class="nac-nome">${esc(n)}</span><span class="nac-barra"><span style="width:${Math.round(c / max * 100)}%"></span></span><b>${c}</b></li>`).join('')}</ul>
+    </section>`;
   }
 
   function pageTransferencias(M) {
@@ -700,6 +740,7 @@
     const page = pages[p] ? p : 'inicio';
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('ativo', a.dataset.page === page));
     $app.innerHTML = pages[page](MODEL, arg);
+    startSlides();
     if (page !== lastPage) window.scrollTo(0, 0);
     lastPage = page;
   }
@@ -747,12 +788,12 @@
       const bust = `?v=${Date.now()}`;
       // Arquivos de apoio são opcionais: sem eles, o site usa só a planilha.
       const optional = url => fetch(url + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
-      const extrasReq = Promise.all([VIDEOS_URL, FOTOS_URL, CLUBES_URL, TREINADOR_URL].map(optional));
+      const extrasReq = Promise.all([VIDEOS_URL, FOTOS_URL, CLUBES_URL, TREINADOR_URL, FOTOS_CORPO_URL].map(optional));
       const res = await fetch(DATA_URL + bust, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Não foi possível baixar ${DATA_URL} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-      const [videos, fotos, clubesJson, treinador] = await extrasReq;
-      MODEL = build(wb, { videos, fotos, clubesJson, treinador });
+      const [videos, fotos, clubesJson, treinador, fotosCorpo] = await extrasReq;
+      MODEL = build(wb, { videos, fotos, clubesJson, treinador, fotosCorpo });
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();
