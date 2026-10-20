@@ -286,20 +286,26 @@ tr.fora td { opacity: .65; }
 .artilheiro-foto img { position: absolute; bottom: 0; right: 0; height: 100%; width: 100%; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .45)); }
 .artilheiro-foto .avatar { margin: auto; }
 
-/* destaque da temporada (Início): fundo claro para o logo vermelho/verde/branco */
+/* destaque da temporada (Início): lado claro para o logo, painel verde com filete vermelho para a arte */
 .hero-temporada {
-  color: #14201a;
-  background:
-    radial-gradient(60% 90% at 0% 0%, rgba(214, 30, 30, .16), transparent 60%),
-    radial-gradient(60% 90% at 100% 100%, rgba(30, 110, 45, .22), transparent 60%),
-    #f6f4ee;
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); min-height: 340px;
+  padding: 0; color: #14201a; background: #f7f5f0;
 }
-.hero-temporada::after { border-color: rgba(30, 77, 43, .07); }
-.hero-temporada .hero-logo { margin: 0; font-size: clamp(34px, 6vw, 54px); }
-.hero-temporada .hero-logo img { display: block; width: min(560px, 100%); height: auto; }
-.hero-temporada p { opacity: 1; color: #3c4a41; }
-.hero-temporada .hero-serie { margin-top: 10px; font-weight: 500; color: #14201a; }
-.hero-temporada .botao.secundario { background: rgba(20, 32, 26, .08); color: #14201a; }
+.hero-temporada::after { display: none; }
+.hero-conteudo { position: relative; z-index: 2; padding: 30px 8px 30px 36px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.hero-sobre { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #1e5a2f; }
+.hero-temporada .hero-logo { margin: 0; font-size: clamp(34px, 6vw, 54px); color: #14201a; }
+.hero-temporada .hero-logo img { display: block; width: min(500px, 100%); height: auto; margin-left: -6px; }
+.hero-temporada p { margin: 0; opacity: 1; }
+.hero-chamada { font-size: 17px; line-height: 1.45; font-weight: 500; color: #1f2b24; max-width: 44ch; }
+.hero-meta { font-size: 13px; color: #5c6b61; }
+.hero-temporada .botoes { margin-top: 8px; }
+.hero-temporada .botao.secundario { background: transparent; color: #14201a; box-shadow: inset 0 0 0 1.5px rgba(20, 32, 26, .25); }
+.hero-arte { position: relative; overflow: hidden; }
+.hero-arte::before, .hero-arte::after { content: ""; position: absolute; inset: 0; }
+.hero-arte::before { background: radial-gradient(80% 70% at 70% 100%, #2f8a45 0%, transparent 70%), linear-gradient(165deg, #1e5a2f, #0d2a17); clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%); }
+.hero-arte::after { background: #d71920; clip-path: polygon(23% 0, 26% 0, -2% 100%, -5% 100%); }
+.hero-arte img { position: absolute; z-index: 1; bottom: 0; right: 2%; height: 104%; width: 80%; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, .45)); }
 
 /* metas */
 .meta { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
@@ -423,4 +429,11 @@ tr.fora td { opacity: .65; }
   .artilheiro-numeros strong { font-size: 32px; }
   .artilheiro-texto { padding: 18px; }
   .nacionalidades li { grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) 24px; }
+  .hero-temporada { grid-template-columns: 1fr; padding: 0; }
+  .hero-conteudo { padding: 22px 20px 8px; }
+  .hero-chamada { font-size: 15px; }
+  .hero-arte { height: 230px; }
+  .hero-arte::before { clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%); }
+  .hero-arte::after { clip-path: polygon(0 12%, 100% -6%, 100% -2%, 0 16%); }
+  .hero-arte img { right: 50%; transform: translateX(50%); width: auto; height: 100%; }
 }

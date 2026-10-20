@@ -558,10 +558,14 @@
       : esc(temp.nome || serie);
     return `
       <section class="hero hero-temporada">
-        <h1 class="hero-logo">${titulo}</h1>
-        <p class="hero-serie">Uma temporada da série <b>${esc(serie)}</b> · Modo Carreira Realista · FC 27</p>
-        <p>${esc(M.clube)} · Temporada ${esc(M.temporadaAtual)}${M.liga ? ' · ' + esc(M.liga) : ''}. Episódios, resultados, metas e os recordes que a série quer quebrar.</p>
-        <div class="botoes">${link}<a class="botao secundario" href="#episodios">Ver episódios</a></div>
+        <div class="hero-conteudo">
+          <small class="hero-sobre">${esc(serie)} · Modo Carreira Realista</small>
+          <h1 class="hero-logo">${titulo}</h1>
+          ${temp.chamada ? `<p class="hero-chamada">${esc(temp.chamada)}</p>` : ''}
+          <p class="hero-meta">${esc(M.clube)} · ${M.liga ? esc(M.liga) + ' · ' : ''}${esc(M.temporadaAtual)}</p>
+          <div class="botoes">${link}<a class="botao secundario" href="#episodios">Ver episódios</a></div>
+        </div>
+        <div class="hero-arte" aria-hidden="true">${temp.imagem ? `<img src="${esc(temp.imagem)}" alt="" onerror="this.remove()">` : ''}</div>
       </section>
 
       <section class="secao grid grid-4">
