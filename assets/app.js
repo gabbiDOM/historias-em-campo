@@ -134,12 +134,19 @@
     const tableEps = [...tables.keys()].sort((a, b) => a - b);
 
     const elenco = new Map();
+    // Chegada/Saida são números de episódio; o Sheets às vezes converte "1/10" em data (número grande).
+    const epNum = (v, jogador, coluna) => {
+      const n = num(v);
+      if (n == null) return null;
+      if (n >= 1000) { warnings.push(`Elenco: ${jogador} tem uma data em ${coluna}. Use só o número do episódio (ex.: 3).`); return null; }
+      return n;
+    };
     // Origem: "Base" (cria da base), "Contratação" (reforço) ou vazio/"Elenco inicial".
     const origemTipo = v => { const n = norm(v); return n.startsWith('base') ? 'base' : /^(contrat|reforc|emprest)/.test(n) ? 'reforco' : ''; };
     sheet(wb, 'Elenco').forEach(r => {
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
-        origem: origemTipo(r.origem), chegada: num(r.chegada), saida: num(r.saida)
+        origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida')
       });
     });
 
