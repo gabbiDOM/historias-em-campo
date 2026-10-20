@@ -3,6 +3,7 @@
   'use strict';
 
   const DATA_URL = 'dados/dados.xlsx';
+  const VIDEOS_URL = 'dados/videos.json'; // gerado pela automação do GitHub a partir do feed do canal
   const $app = document.getElementById('app');
   const $avisos = document.getElementById('avisos');
 
@@ -51,18 +52,38 @@
       .filter(o => Object.values(o).some(v => v !== ''));
   }
 
+  // Completa os episódios com os vídeos do canal: título, data e link vêm do YouTube
+  // quando a planilha deixa esses campos vazios. Vídeo sem linha na planilha vira episódio novo.
+  const cleanTitle = t => String(t || '').split('|')[0].trim() || String(t || '');
+  function mergeVideos(episodes, videos, temporadaPadrao) {
+    if (!videos || !Array.isArray(videos.videos)) return episodes;
+    const byN = new Map(episodes.map(e => [e.n, e]));
+    videos.videos.forEach(v => {
+      if (v.episodio == null || !v.id) return;
+      let e = byN.get(v.episodio);
+      if (!e) {
+        e = { n: v.episodio, temporada: temporadaPadrao, titulo: '', data: '', link: '', resumo: '' };
+        byN.set(e.n, e);
+      }
+      if (!e.link) e.link = `https://www.youtube.com/watch?v=${v.id}`;
+      if (!e.titulo) e.titulo = cleanTitle(v.titulo);
+      if (!e.data && v.publicado) e.data = new Date(v.publicado).toLocaleDateString('pt-BR');
+    });
+    return [...byN.values()].sort((a, b) => a.n - b.n);
+  }
+
   // ---------- modelo ----------
-  function build(wb) {
+  function build(wb, videos) {
     const cfg = {};
     sheet(wb, 'Clube').forEach(r => { if (r.chave) cfg[norm(r.chave)] = r.valor; });
 
     const clube = String(cfg.clube || 'Meu clube');
     const liga = String(cfg.competicaoliga || '');
 
-    const episodes = sheet(wb, 'Episodios')
+    const episodes = mergeVideos(sheet(wb, 'Episodios')
       .map(r => ({ n: num(r.episodio), temporada: String(r.temporada || ''), titulo: String(r.titulo || ''), data: fmtDate(r.data), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
       .filter(e => e.n != null)
-      .sort((a, b) => a.n - b.n);
+      .sort((a, b) => a.n - b.n), videos, String(cfg.temporadaatual || ''));
     const epSeason = new Map(episodes.map(e => [e.n, e.temporada]));
 
     const games = sheet(wb, 'Jogos')
@@ -248,7 +269,7 @@
     return `<article class="card ep" id="ep-${e.n}">
       ${thumb}
       <div>
-        <div class="ep-cabecalho"><small>EPISÓDIO ${String(e.n).padStart(2, '0')}${e.temporada ? ' · ' + esc(e.temporada) : ''}</small><h3>${esc(e.titulo)}</h3></div>
+        <div class="ep-cabecalho"><small>EPISÓDIO ${String(e.n).padStart(2, '0')}${e.temporada ? ' · ' + esc(e.temporada) : ''}</small><h3>${esc(e.titulo || `Episódio ${String(e.n).padStart(2, '0')}`)}</h3></div>
         ${e.data ? `<div class="ep-data">Lançado em ${esc(e.data)}</div>` : ''}
         ${e.resumo ? `<p class="ep-resumo">${esc(e.resumo)}</p>` : ''}
         <div class="jogos">${games.map(g => gameCard(M, g)).join('') || '<p class="mudo">Sem jogos registrados.</p>'}</div>
@@ -471,10 +492,13 @@
   async function init() {
     try {
       if (typeof XLSX === 'undefined') throw new Error('A biblioteca de leitura de planilhas não carregou. Verifique a conexão.');
-      const res = await fetch(`${DATA_URL}?v=${Date.now()}`, { cache: 'no-store' });
+      const bust = `?v=${Date.now()}`;
+      // Os vídeos são opcionais: sem o arquivo, o site usa só a planilha.
+      const videosReq = fetch(VIDEOS_URL + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+      const res = await fetch(DATA_URL + bust, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Não foi possível baixar ${DATA_URL} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-      MODEL = build(wb);
+      MODEL = build(wb, await videosReq);
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();
