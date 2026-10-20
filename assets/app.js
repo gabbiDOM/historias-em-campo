@@ -230,7 +230,7 @@
       } else if (!p.situacaoManual) {
         const emprestimo = norm(t.obs).startsWith('empre');
         p.situacao = emprestimo ? 'emprestado' : 'saiu';
-        p.situacaoLabel = emprestimo ? 'Emprestado' : (t.obs || (t.valor ? 'Vendido' : 'Saiu'));
+        p.situacaoLabel = emprestimo ? 'Emprestado' : t.valor ? 'Vendido' : 'Saiu';
         p.saida = t.ep;
       }
       elenco.set(k, p);
@@ -633,7 +633,11 @@
     const gasto = soma(chegadas), receita = soma(saidas), saldo = receita - gasto;
     const valor = t => t.valor != null ? fmtMoney(t.valor) : esc(t.valorTexto || '—');
     const obs = t => t.obs ? `<span class="tag${norm(t.obs).startsWith('empre') ? ' emprestado' : ''}">${esc(t.obs)}</span>` : '';
-    const clubeLinha = nome => nome ? `<span class="clube-linha">${crest(M, nome, 'mini')}${esc(nome)}</span>` : '<span class="mudo">—</span>';
+    // "Sem clube", "Livre", "Base"... não são clubes: só texto, sem escudo.
+    const semClube = nome => ['semclube', 'livre', 'base', 'aposentado', 'aposentou', 'dispensado'].includes(norm(nome));
+    const clubeLinha = nome => !nome ? '<span class="mudo">—</span>'
+      : semClube(nome) ? `<span class="mudo">${esc(nome)}</span>`
+      : `<span class="clube-linha">${crest(M, nome, 'mini')}${esc(nome)}</span>`;
 
     const cards = chegadas.map(t => `<article class="card chegada">
       <div class="chegada-topo">${avatar(t, 'grande')}<div><h3>${esc(t.jogador)}</h3>
