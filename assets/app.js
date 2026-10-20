@@ -26,6 +26,13 @@
     }
     return String(v || '');
   }
+  // Aceita 23, "23'", "45+2" ou "90 + 3"; ordem coloca acréscimos depois do minuto base.
+  function parseMinute(v) {
+    const m = String(v ?? '').replace(/\s|'/g, '').match(/^(\d{1,3})(?:\+(\d{1,2}))?$/);
+    if (!m) return null;
+    const base = Number(m[1]), extra = m[2] ? Number(m[2]) : 0;
+    return { texto: extra ? `${base}+${extra}'` : `${base}'`, ordem: base + extra / 100 };
+  }
   function ytId(url) {
     const m = String(url || '').match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/);
     return m ? m[1] : null;
@@ -77,9 +84,10 @@
     sheet(wb, 'Gols').forEach(r => {
       const g = byId.get(num(r.jogo));
       if (!g) { if (r.autor) warnings.push(`Gol de ${r.autor} aponta para o jogo ${r.jogo}, que não existe na aba Jogos.`); return; }
-      if (r.autor) g.gols.push({ autor: String(r.autor), assist: String(r.assistencia || '') });
+      if (r.autor) g.gols.push({ autor: String(r.autor), assist: String(r.assistencia || ''), minuto: parseMinute(r.minuto) });
     });
     games.forEach(g => {
+      g.gols.sort((a, b) => (a.minuto ? a.minuto.ordem : 999) - (b.minuto ? b.minuto.ordem : 999));
       if (g.gols.length !== g.gp) warnings.push(`Jogo ${g.id} (${g.adv}): placar com ${plural(g.gp, 'gol', 'gols')}, mas ${g.gols.length} registrado(s) na aba Gols.`);
     });
 
@@ -214,7 +222,7 @@
     const home = g.casa ? M.clube : g.adv, away = g.casa ? g.adv : M.clube;
     const hs = g.casa ? g.gp : g.gc, as = g.casa ? g.gc : g.gp;
     const rodada = g.rodada === '' ? '' : (num(g.rodada) != null ? `Rodada ${g.rodada}` : esc(g.rodada));
-    const gols = g.gols.length ? `<ul class="gols-lista">${g.gols.map(x => `<li><span class="ic-gol"></span>${esc(x.autor)}${x.assist ? ` <small>assist. ${esc(x.assist)}</small>` : ''}</li>`).join('')}</ul>` : '';
+    const gols = g.gols.length ? `<ul class="gols-lista">${g.gols.map(x => `<li><span class="ic-gol"></span>${x.minuto ? `<span class="min">${x.minuto.texto}</span>` : ''}${esc(x.autor)}${x.assist ? ` <small>assist. ${esc(x.assist)}</small>` : ''}</li>`).join('')}</ul>` : '';
     return `<div class="jogo">
       <div class="jogo-meta">${esc(g.comp)}${rodada ? ' · ' + rodada : ''}</div>
       <div class="placar">
