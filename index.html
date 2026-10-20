@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Histórias em Campo</title>
+  <meta name="description" content="Portal da série Histórias em Campo, do canal @gabbiDOMFC: episódios, resultados, tabela, artilharia e recordes do Modo Carreira no FC27.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-inner">
+      <a class="marca" href="#inicio">
+        <span class="escudo" id="escudo">W</span>
+        <span class="marca-texto">
+          <strong id="nome-portal">Histórias em Campo</strong>
+          <small id="sub-portal">Modo Carreira · FC27</small>
+        </span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Seções">
+        <a href="#inicio" data-page="inicio">Início</a>
+        <a href="#episodios" data-page="episodios">Episódios</a>
+        <a href="#tabela" data-page="tabela">Tabela</a>
+        <a href="#jogadores" data-page="jogadores">Jogadores</a>
+        <a href="#recordes" data-page="recordes">Recordes</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" id="avisos"></div>
+
+  <main class="container" id="app">
+    <div class="estado">Carregando dados da planilha…</div>
+  </main>
+
+  <footer class="rodape">
+    <div class="container">
+      <p>Portal de fã da série <strong id="rodape-portal">Histórias em Campo</strong>, do canal <a id="rodape-canal" href="https://www.youtube.com/@gabbiDOMFC" target="_blank" rel="noopener">@gabbiDOMFC</a>.</p>
+      <p class="mudo">Projeto não oficial, sem vínculo com clubes, ligas ou a EA Sports.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
