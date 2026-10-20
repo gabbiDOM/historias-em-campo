@@ -89,7 +89,7 @@
     const liga = String(cfg.competicaoliga || '');
 
     const episodes = mergeVideos(sheet(wb, 'Episodios')
-      .map(r => ({ n: num(r.episodio), temporada: season(r.temporada), titulo: String(r.titulo || ''), data: fmtDate(r.data), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
+      .map(r => ({ n: num(r.episodio), temporada: season(r.temporada), titulo: cleanTitle(r.titulo), data: fmtDate(r.data), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
       .filter(e => e.n != null)
       .sort((a, b) => a.n - b.n), videos, season(cfg.temporadaatual));
     const epSeason = new Map(episodes.map(e => [e.n, e.temporada]));
@@ -148,6 +148,8 @@
 
     return {
       cfg, clube, liga, episodes, games, tables, tableEps, elenco, recordes, metas, titulos, seasons, temporadaAtual, warnings,
+      // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
+      totalTimes: num(cfg.totaltimes) ?? 18,
       zonas: {
         acesso: num(cfg.zonaacesso) ?? 2,
         playoff: num(cfg.zonaplayoffacesso) ?? 3,
@@ -291,7 +293,7 @@
   function positionChart(M) {
     const pts = M.tableEps.map(ep => ({ ep, row: clubRow(M, ep), n: M.tables.get(ep).length })).filter(p => p.row);
     if (!pts.length) return '<p class="mudo">A evolução aparece quando houver classificação na planilha.</p>';
-    const nTeams = Math.max(...pts.map(p => p.n));
+    const nTeams = Math.max(M.totalTimes, ...pts.map(p => p.n), ...pts.map(p => p.row.pos));
     const W = 640, H = 240, l = 40, r = 20, t = 18, b = 32;
     const x = i => pts.length === 1 ? (l + W - r) / 2 : l + i * (W - l - r) / (pts.length - 1);
     const y = pos => t + (pos - 1) * (H - t - b) / Math.max(1, nTeams - 1);
@@ -385,24 +387,32 @@
     if (!M.tables.has(ep)) ep = M.tableEps[M.tableEps.length - 1];
     const prevEp = M.tableEps.filter(x => x < ep).pop();
     const prevPos = new Map((prevEp != null ? M.tables.get(prevEp) : []).map(r => [norm(r.time), r.pos]));
-    const rows = M.tables.get(ep).map(r => {
+    const table = M.tables.get(ep);
+    const rows = table.map((r, i) => {
       const p = prevPos.get(norm(r.time));
       const dlt = p != null ? p - r.pos : 0;
       const delta = dlt ? `<span class="delta ${dlt > 0 ? 'sobe' : 'desce'}">${dlt > 0 ? '▲' : '▼'}${Math.abs(dlt)}</span>` : '';
-      return `<tr class="${zoneClass(M, r.pos)} ${norm(r.time) === norm(M.clube) ? 'eu' : ''}">
+      // Linha "…" quando há posições puladas (ex.: só os 6 primeiros e o clube mais abaixo).
+      const prevRow = table[i - 1];
+      const gap = prevRow && r.pos - prevRow.pos > 1 ? '<tr class="lacuna"><td colspan="10">…</td></tr>' : '';
+      return `${gap}<tr class="${zoneClass(M, r.pos)} ${norm(r.time) === norm(M.clube) ? 'eu' : ''}">
         <td class="pos">${r.pos}</td><td class="esq">${esc(r.time)}${delta}</td><td class="pts">${r.pts}</td>
         <td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg > 0 ? '+' : ''}${r.sg}</td></tr>`;
     }).join('');
     const ep0 = M.episodes.find(e => e.n === ep);
     return `<div class="secao-topo">
-        <div><h2>${esc(M.liga || 'Classificação')}</h2><span class="mudo">Ao final do episódio ${ep}${ep0 && ep0.titulo ? ' · ' + esc(ep0.titulo) : ''}</span></div>
+        <div><h2>${esc(M.liga || 'Classificação')}</h2><span class="mudo">Ao final do episódio ${ep}${ep0 && ep0.titulo ? ' · ' + esc(ep0.titulo) : ''}${table.length < M.totalTimes ? ` · ${plural(table.length, 'time', 'times')} de ${M.totalTimes}` : ''}</span></div>
         <label>Episódio <select id="sel-ep">${M.tableEps.map(x => `<option value="${x}" ${x === ep ? 'selected' : ''}>EP ${String(x).padStart(2, '0')}</option>`).join('')}</select></label>
       </div>
       <div class="tabela-wrap"><table>
         <thead><tr><th>#</th><th class="esq">Time</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <div class="legenda"><span class="l-acesso">Acesso direto</span><span class="l-playoff">Playoff</span><span class="l-reb">Rebaixamento</span></div>`;
+      <div class="legenda">${[
+        ['l-acesso', 'Acesso direto', r => r.pos <= M.zonas.acesso],
+        ['l-playoff', 'Playoff', r => r.pos === M.zonas.playoff || r.pos === M.zonas.playoffReb],
+        ['l-reb', 'Rebaixamento', r => r.pos >= M.zonas.reb]
+      ].filter(([, , has]) => table.some(has)).map(([cls, label]) => `<span class="${cls}">${label}</span>`).join('')}</div>`;
   }
 
   const ui = { sort: 'g', dir: -1, temporada: null };

@@ -177,6 +177,7 @@ th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: v
 td { border-bottom: 1px solid var(--line); }
 tr:last-child td { border-bottom: 0; }
 td.esq, th.esq { text-align: left; }
+tr.lacuna td { color: var(--muted); padding: 2px; letter-spacing: .2em; }
 td.pts { font-weight: 700; }
 tr.eu td { background: color-mix(in srgb, var(--primary) 14%, transparent); font-weight: 600; }
 td.pos { box-shadow: inset 4px 0 0 transparent; font-weight: 700; }
