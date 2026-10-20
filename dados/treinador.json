@@ -3,7 +3,9 @@
   "cargo": "Treinador do VfL Wolfsburg",
   "imagens": [
     { "src": "assets/treinador-1.webp", "posicao": "center bottom" },
-    { "src": "assets/treinador.webp", "posicao": "36% 30%" }
+    { "src": "assets/treinador.webp", "posicao": "36% 30%" },
+    { "src": "assets/treinador-jogador-1.png", "posicao": "42% 40%" },
+    { "src": "assets/treinador-jogador-2.png", "posicao": "50% 30%" }
   ],
   "paragrafos": [
     "Nascido em Buenos Aires em 15 de abril de 1981, Andrés Nicolás D'Alessandro foi revelado pelo River Plate. Canhoto, habilidoso e criativo, o \"Cabezón\" virou um dos meias mais talentosos da sua geração.",
