@@ -216,6 +216,9 @@ select {
 .recorde h3 { font-size: 21px; }
 .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
 .tag.ok { background: var(--win); color: #fff; }
+td .tag { font-size: 10px; padding: 2px 6px; margin-left: 4px; vertical-align: 1px; }
+.tag.base { background: color-mix(in srgb, var(--primary) 18%, transparent); color: var(--text); }
+tr.saiu td { opacity: .6; }
 .rec-numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .rec-numeros small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .rec-numeros strong { display: block; font: 700 38px/1.05 "Barlow Condensed", sans-serif; }

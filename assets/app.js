@@ -134,7 +134,14 @@
     const tableEps = [...tables.keys()].sort((a, b) => a - b);
 
     const elenco = new Map();
-    sheet(wb, 'Elenco').forEach(r => { if (r.jogador) elenco.set(norm(r.jogador), { nome: String(r.jogador), pos: String(r.posicao || ''), numero: r.numero, nac: String(r.nacionalidade || '') }); });
+    // Origem: "Base" (cria da base), "Contratação" (reforço) ou vazio/"Elenco inicial".
+    const origemTipo = v => { const n = norm(v); return n.startsWith('base') ? 'base' : /^(contrat|reforc|emprest)/.test(n) ? 'reforco' : ''; };
+    sheet(wb, 'Elenco').forEach(r => {
+      if (r.jogador) elenco.set(norm(r.jogador), {
+        nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
+        origem: origemTipo(r.origem), chegada: num(r.chegada), saida: num(r.saida)
+      });
+    });
 
     const recordes = sheet(wb, 'Recordes').map(r => ({
       chave: norm(r.chave), titulo: String(r.recorde || r.chave), valor: num(r.valor),
@@ -164,7 +171,7 @@
     const m = new Map();
     const get = name => {
       const k = norm(name);
-      if (!m.has(k)) { const e = M.elenco.get(k); m.set(k, { nome: e ? e.nome : name, pos: e ? e.pos : '', numero: e ? e.numero : '', g: 0, a: 0 }); }
+      if (!m.has(k)) m.set(k, { ...(M.elenco.get(k) || { nome: name, pos: '', nac: '', origem: '' }), g: 0, a: 0 });
       return m.get(k);
     };
     games.forEach(g => g.gols.forEach(x => {
@@ -415,29 +422,39 @@
       ].filter(([, , has]) => table.some(has)).map(([cls, label]) => `<span class="${cls}">${label}</span>`).join('')}</div>`;
   }
 
+  function playerTags(p) {
+    const tags = [];
+    if (p.origem === 'base') tags.push(`<span class="tag base"${p.chegada != null ? ` title="Subiu no EP ${p.chegada}"` : ''}>Base</span>`);
+    if (p.origem === 'reforco') tags.push(`<span class="tag"${p.chegada != null ? ` title="Chegou no EP ${p.chegada}"` : ''}>Reforço</span>`);
+    if (p.saida != null) tags.push(`<span class="tag">Saiu no EP ${p.saida}</span>`);
+    return tags.length ? ` ${tags.join(' ')}` : '';
+  }
+
   const ui = { sort: 'g', dir: -1, temporada: null };
   function pageJogadores(M) {
     if (ui.temporada == null) ui.temporada = M.temporadaAtual || 'todas';
     const games = ui.temporada === 'todas' ? M.games : M.games.filter(g => g.temporada === ui.temporada);
     const st = playerStats(M, games);
-    M.elenco.forEach((e, k) => { if (!st.has(k)) st.set(k, { nome: e.nome, pos: e.pos, numero: e.numero, g: 0, a: 0 }); });
+    M.elenco.forEach((e, k) => { if (!st.has(k)) st.set(k, { ...e, g: 0, a: 0 }); });
     const list = [...st.values()].map(p => ({ ...p, ga: p.g + p.a }));
     const key = ui.sort, dir = ui.dir;
     list.sort((a, b) => key === 'nome' ? dir * a.nome.localeCompare(b.nome, 'pt-BR') : dir * (a[key] - b[key]) || b.g - a.g || b.a - a.a || a.nome.localeCompare(b.nome, 'pt-BR'));
     const top = k => { const p = [...list].sort((a, b) => b[k] - a[k])[0]; return p && p[k] > 0 ? p : null; };
     const [tg, ta, tga] = [top('g'), top('a'), top('ga')];
+    const base = list.filter(p => p.origem === 'base');
     const th = (k, label, cls = '') => `<th data-sort="${k}" class="${cls} ${ui.sort === k ? 'ordenado' : ''}">${label}${ui.sort === k ? (ui.dir < 0 ? ' ▾' : ' ▴') : ''}</th>`;
     return `<div class="secao-topo"><h2>Jogadores</h2>
         <label>Temporada <select id="sel-temp"><option value="todas" ${ui.temporada === 'todas' ? 'selected' : ''}>Todas</option>${M.seasons.map(s => `<option ${s === ui.temporada ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
       </div>
-      <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="grid grid-4" style="margin-bottom:16px">
         <div class="card stat"><small>Artilheiro</small><strong>${tg ? tg.g : 0}</strong><span>${tg ? esc(tg.nome) : '—'}</span></div>
         <div class="card stat"><small>Garçom</small><strong>${ta ? ta.a : 0}</strong><span>${ta ? esc(ta.nome) : '—'}</span></div>
         <div class="card stat"><small>Participações em gols</small><strong>${tga ? tga.ga : 0}</strong><span>${tga ? esc(tga.nome) : '—'}</span></div>
+        ${base.length ? `<div class="card stat"><small>Crias da base</small><strong>${plural(base.length, 'jogador', 'jogadores')}</strong><span>${plural(base.reduce((s, p) => s + p.g, 0), 'gol', 'gols')} · ${plural(base.reduce((s, p) => s + p.a, 0), 'assistência', 'assistências')}</span></div>` : ''}
       </div>
       <div class="tabela-wrap"><table>
-        <thead><tr><th>Nº</th>${th('nome', 'Jogador', 'esq')}<th>Pos</th>${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
-        <tbody>${list.map(p => `<tr><td class="mudo">${esc(p.numero)}</td><td class="esq">${esc(p.nome)}</td><td class="mudo">${esc(p.pos)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
+        <thead><tr>${th('nome', 'Jogador', 'esq')}<th>Pos</th><th class="esq">País</th>${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
+        <tbody>${list.map(p => `<tr class="${p.saida != null ? 'saiu' : ''}"><td class="esq">${esc(p.nome)}${playerTags(p)}</td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>`;
   }
 
