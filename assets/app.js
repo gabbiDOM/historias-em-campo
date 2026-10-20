@@ -500,18 +500,24 @@
     return null;
   }
 
-  function agendaBox(M) {
+  // Faixa fina abaixo do destaque: próximo episódio, dia/hora e contagem regressiva.
+  function agendaBar(M) {
     const cfg = M.temporadaInfo.lancamentos;
     if (!cfg) return '';
     const nomes = (cfg.dias || []).join(' e ');
     const hora = String(cfg.hora || '18:00').replace(/:00$/, 'h').replace(':', 'h');
     const publicados = M.episodes.filter(e => !isIntro(e) && ytId(e.link));
     const prox = (publicados.length ? publicados[publicados.length - 1].n : 0) + 1;
-    return `<div class="hero-agenda">
-      <span class="agenda-texto"><span class="ponto-vivo"></span><span>Episódios novos toda <b>${esc(nomes)}</b>, às <b>${esc(hora)}</b></span></span>
-      <div class="contagem" data-contagem aria-live="off"><span class="contagem-rotulo">EP ${pad2(prox)} em</span>
+    const alvo = proximoLancamento(cfg);
+    const off = (cfg.utc ?? -3) * 3600000;
+    const dia = alvo != null ? DIAS[new Date(alvo + off).getUTCDay()] : '';
+    return `<div class="faixa-agenda">
+      <span class="ponto-vivo"></span>
+      <span class="agenda-proximo">Próximo episódio · <b>EP ${pad2(prox)}</b>${dia ? ` · ${esc(dia)}, ${esc(hora)}` : ''}</span>
+      <span class="contagem" data-contagem aria-live="off"><span class="contagem-rotulo">faltam</span>
         <span><b data-u="d">–</b><small>d</small></span><span><b data-u="h">–</b><small>h</small></span><span><b data-u="m">–</b><small>min</small></span><span><b data-u="s">–</b><small>s</small></span>
-      </div>
+      </span>
+      <span class="agenda-regra">Novos episódios toda ${esc(nomes)}, às ${esc(hora)}</span>
     </div>`;
   }
 
@@ -525,7 +531,7 @@
       if (!box.isConnected) return clearInterval(contagemTimer);
       const alvo = proximoLancamento(cfg), agora = Date.now();
       if (alvo == null) return;
-      if (alvo <= agora) { box.classList.add('no-ar'); box.innerHTML = '<span class="contagem-rotulo">Episódio novo no ar!</span>'; return; }
+      if (alvo <= agora) { box.classList.add('no-ar'); box.innerHTML = '<span class="contagem-rotulo">no ar agora!</span>'; return; }
       let s = Math.floor((alvo - agora) / 1000);
       const v = { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
       box.querySelectorAll('[data-u]').forEach(el => { el.textContent = el.dataset.u === 'd' ? v.d : pad2(v[el.dataset.u]); });
@@ -615,12 +621,11 @@
           <small class="hero-sobre">${esc(serie)} · Modo Carreira Realista</small>
           <h1 class="hero-logo">${titulo}</h1>
           ${temp.chamada ? `<p class="hero-chamada">${esc(temp.chamada)}</p>` : ''}
-          <p class="hero-meta">${esc(M.clube)} · ${M.liga ? esc(M.liga) + ' · ' : ''}${esc(M.temporadaAtual)}</p>
-          ${agendaBox(M)}
           <div class="botoes">${link}<a class="botao secundario" href="#episodios">Ver episódios</a></div>
         </div>
         <div class="hero-arte" aria-hidden="true">${temp.imagem ? `<img src="${esc(temp.imagem)}" alt="" onerror="this.remove()">` : ''}</div>
       </section>
+      ${agendaBar(M)}
 
       <section class="secao grid grid-4">
         <div class="card stat"><small>Posição atual</small><strong>${me ? ordinal(me.pos) : '—'}</strong><span>${me ? `${me.pts} pts · ${esc(M.liga)}` : 'sem tabela'}</span></div>

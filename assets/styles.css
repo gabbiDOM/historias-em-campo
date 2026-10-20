@@ -292,33 +292,39 @@ tr.fora td { opacity: .65; }
   padding: 0; color: #14201a; background: #f7f5f0;
 }
 .hero-temporada::after { display: none; }
-.hero-conteudo { position: relative; z-index: 2; padding: 30px 8px 30px 36px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
-.hero-sobre { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #1e5a2f; }
-.hero-temporada .hero-logo { margin: 0; font-size: clamp(34px, 6vw, 54px); color: #14201a; }
-.hero-temporada .hero-logo img { display: block; width: min(500px, 100%); height: auto; margin-left: -6px; }
+.hero-conteudo { position: relative; z-index: 2; padding: 34px 8px 34px 40px; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.hero-sobre { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #1e5a2f; }
+.hero-temporada .hero-logo { margin: -4px 0 0; font-size: clamp(34px, 6vw, 54px); color: #14201a; }
+.hero-temporada .hero-logo img { display: block; width: min(540px, 100%); height: auto; margin-left: -8px; }
 .hero-temporada p { margin: 0; opacity: 1; }
-.hero-chamada { font-size: 17px; line-height: 1.45; font-weight: 500; color: #1f2b24; max-width: 44ch; }
-.hero-meta { font-size: 13px; color: #5c6b61; }
-.hero-temporada .botoes { margin-top: 8px; }
+.hero-chamada { font-size: 17px; line-height: 1.45; font-weight: 500; color: #2a3830; max-width: 40ch; }
+.hero-temporada .botoes { margin-top: 2px; }
 .hero-temporada .botao.secundario { background: transparent; color: #14201a; box-shadow: inset 0 0 0 1.5px rgba(20, 32, 26, .25); }
-.hero-agenda {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 6px; padding: 10px 14px;
-  border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px rgba(20, 32, 26, .1); max-width: 520px;
-}
-.agenda-texto { font-size: 14px; color: #1f2b24; display: inline-flex; align-items: center; gap: 8px; }
-.ponto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #d71920; box-shadow: 0 0 0 0 rgba(215, 25, 32, .5); animation: pulso 2s infinite; flex: none; }
-@keyframes pulso { 70% { box-shadow: 0 0 0 7px rgba(215, 25, 32, 0); } 100% { box-shadow: 0 0 0 0 rgba(215, 25, 32, 0); } }
-@media (prefers-reduced-motion: reduce) { .ponto-vivo { animation: none; } }
-.contagem { display: flex; align-items: baseline; gap: 10px; font-variant-numeric: tabular-nums; }
-.contagem-rotulo { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #5c6b61; }
-.contagem b { font: 700 24px/1 "Barlow Condensed", sans-serif; color: #1e5a2f; }
-.contagem small { font-size: 11px; color: #5c6b61; margin-left: 1px; }
-.contagem.no-ar .contagem-rotulo { color: #d71920; font-size: 13px; }
+/* verde + filete vermelho colado formam um corte só; luz suave atrás da cabeça do treinador */
 .hero-arte { position: relative; overflow: hidden; }
 .hero-arte::before, .hero-arte::after { content: ""; position: absolute; inset: 0; }
-.hero-arte::before { background: radial-gradient(80% 70% at 70% 100%, #2f8a45 0%, transparent 70%), linear-gradient(165deg, #1e5a2f, #0d2a17); clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%); }
-.hero-arte::after { background: #d71920; clip-path: polygon(23% 0, 26% 0, -2% 100%, -5% 100%); }
-.hero-arte img { position: absolute; z-index: 1; bottom: 0; right: 2%; height: 104%; width: 80%; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, .45)); }
+.hero-arte::before {
+  background: radial-gradient(42% 48% at 62% 30%, rgba(120, 220, 120, .35), transparent 70%), linear-gradient(165deg, #1f5f31, #0b2414);
+  clip-path: polygon(30% 0, 100% 0, 100% 100%, 6% 100%);
+}
+.hero-arte::after { background: #d71920; clip-path: polygon(27% 0, 30% 0, 6% 100%, 3% 100%); }
+.hero-arte img { position: absolute; z-index: 1; bottom: 0; left: 18%; height: 118%; width: 88%; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .5)); }
+
+/* faixa do próximo episódio, logo abaixo do destaque */
+.faixa-agenda {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 12px; padding: 12px 18px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; font-size: 14px;
+}
+.agenda-proximo b { color: var(--primary); }
+.agenda-regra { margin-left: auto; color: var(--muted); font-size: 13px; }
+.ponto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #e5333a; box-shadow: 0 0 0 0 rgba(229, 51, 58, .5); animation: pulso 2s infinite; flex: none; }
+@keyframes pulso { 70% { box-shadow: 0 0 0 7px rgba(229, 51, 58, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 51, 58, 0); } }
+@media (prefers-reduced-motion: reduce) { .ponto-vivo { animation: none; } }
+.contagem { display: inline-flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.contagem-rotulo { font-size: 12px; font-weight: 600; color: var(--muted); }
+.contagem b { font: 700 22px/1 "Barlow Condensed", sans-serif; color: var(--text); }
+.contagem small { font-size: 11px; color: var(--muted); margin-left: 1px; }
+.contagem.no-ar .contagem-rotulo { color: #e5333a; font-size: 14px; font-weight: 700; }
 
 /* metas */
 .meta { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
@@ -447,6 +453,7 @@ tr.fora td { opacity: .65; }
   .hero-chamada { font-size: 15px; }
   .hero-arte { height: 230px; }
   .hero-arte::before { clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%); }
-  .hero-arte::after { clip-path: polygon(0 12%, 100% -6%, 100% -2%, 0 16%); }
-  .hero-arte img { right: 50%; transform: translateX(50%); width: auto; height: 100%; }
+  .hero-arte::after { clip-path: polygon(0 14%, 100% -4%, 100% 0, 0 18%); }
+  .hero-arte img { left: 50%; right: auto; transform: translateX(-50%); width: auto; height: 100%; }
+  .agenda-regra { margin-left: 0; width: 100%; }
 }
