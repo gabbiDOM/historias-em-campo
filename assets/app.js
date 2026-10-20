@@ -54,6 +54,8 @@
 
   // Completa os episódios com os vídeos do canal: título, data e link vêm do YouTube
   // quando a planilha deixa esses campos vazios. Vídeo sem linha na planilha vira episódio novo.
+  // Episódio 0 é a INTRO: aparece na lista antes do EP 01, mas não tem jogos nem entra na contagem.
+  const isIntro = e => e.n === 0;
   const cleanTitle = t => String(t || '').split('|')[0].trim() || String(t || '');
   function mergeVideos(episodes, videos, temporadaPadrao) {
     if (!videos || !Array.isArray(videos.videos)) return episodes;
@@ -66,7 +68,7 @@
         byN.set(e.n, e);
       }
       if (!e.link) e.link = `https://www.youtube.com/watch?v=${v.id}`;
-      if (!e.titulo) e.titulo = cleanTitle(v.titulo);
+      if (!e.titulo) e.titulo = isIntro(e) ? cleanTitle(v.titulo).replace(/^hist[oó]rias em campo\s*[:\-–]\s*/i, '') : cleanTitle(v.titulo);
       if (!e.data && v.publicado) e.data = new Date(v.publicado).toLocaleDateString('pt-BR');
     });
     return [...byN.values()].sort((a, b) => a.n - b.n);
@@ -257,9 +259,11 @@
 
   function episodeCard(M, e) {
     const id = ytId(e.link);
+    const intro = isIntro(e);
+    const pad = String(e.n).padStart(2, '0');
     const thumb = id
-      ? `<a class="ep-thumb" href="${esc(e.link)}" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Miniatura do episódio ${e.n}" loading="lazy"><span class="play">▶ Assistir</span></a>`
-      : `<div class="ep-thumb"><span class="ep-num">EP ${String(e.n).padStart(2, '0')}</span>${e.link ? '' : '<span class="play">Vídeo em breve</span>'}</div>`;
+      ? `<a class="ep-thumb" href="${esc(e.link)}" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Miniatura ${intro ? 'da intro' : `do episódio ${e.n}`}" loading="lazy"><span class="play">▶ Assistir</span></a>`
+      : `<div class="ep-thumb"><span class="ep-num">${intro ? 'INTRO' : `EP ${pad}`}</span>${e.link ? '' : '<span class="play">Vídeo em breve</span>'}</div>`;
     const games = M.games.filter(g => g.ep === e.n);
     const me = clubRow(M, e.n);
     const prevEp = M.tableEps.filter(x => x < e.n).pop();
@@ -269,10 +273,10 @@
     return `<article class="card ep" id="ep-${e.n}">
       ${thumb}
       <div>
-        <div class="ep-cabecalho"><small>EPISÓDIO ${String(e.n).padStart(2, '0')}${e.temporada ? ' · ' + esc(e.temporada) : ''}</small><h3>${esc(e.titulo || `Episódio ${String(e.n).padStart(2, '0')}`)}</h3></div>
+        <div class="ep-cabecalho"><small>${intro ? 'INTRO' : `EPISÓDIO ${pad}`}${e.temporada ? ' · ' + esc(e.temporada) : ''}</small><h3>${esc(e.titulo || (intro ? 'Intro da série' : `Episódio ${pad}`))}</h3></div>
         ${e.data ? `<div class="ep-data">Lançado em ${esc(e.data)}</div>` : ''}
         ${e.resumo ? `<p class="ep-resumo">${esc(e.resumo)}</p>` : ''}
-        <div class="jogos">${games.map(g => gameCard(M, g)).join('') || '<p class="mudo">Sem jogos registrados.</p>'}</div>
+        ${intro && !games.length ? '' : `<div class="jogos">${games.map(g => gameCard(M, g)).join('') || '<p class="mudo">Sem jogos registrados.</p>'}</div>`}
         ${pos}
       </div>
     </article>`;
@@ -365,7 +369,7 @@
 
   function pageEpisodios(M) {
     const eps = [...M.episodes].reverse();
-    return `<div class="secao-topo"><h2>Episódios</h2><span class="mudo">${plural(eps.length, 'episódio', 'episódios')}</span></div>
+    return `<div class="secao-topo"><h2>Episódios</h2><span class="mudo">${plural(eps.filter(e => !isIntro(e)).length, 'episódio', 'episódios')}</span></div>
       ${eps.map(e => episodeCard(M, e)).join('') || '<p class="estado">Nenhum episódio cadastrado.</p>'}`;
   }
 

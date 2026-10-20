@@ -9,6 +9,8 @@ import xml.etree.ElementTree as ET
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "UCOvUI__POkLL10CgCplahQw")
 # Só entram vídeos cujo título contém este texto.
 FILTRO = os.environ.get("FILTRO", "Modo Carreira Realista Wolfsburg")
+# Vídeo sem "EP NN" cujo título começa com este texto vira a INTRO (episódio 0).
+INTRO = os.environ.get("INTRO", "Histórias em Campo")
 SAIDA = pathlib.Path("dados/videos.json")
 NS = {
     "a": "http://www.w3.org/2005/Atom",
@@ -29,11 +31,17 @@ for entry in root.findall("a:entry", NS):
         continue
     vid = entry.find("yt:videoId", NS).text
     m = re.search(r"\bEP\s*0*(\d+)", titulo, re.IGNORECASE)
+    if m:
+        episodio = int(m.group(1))
+    elif titulo.lower().startswith(INTRO.lower()):
+        episodio = 0
+    else:
+        episodio = None
     videos[vid] = {
         "id": vid,
         "titulo": titulo,
         "publicado": entry.find("a:published", NS).text,
-        "episodio": int(m.group(1)) if m else None,
+        "episodio": episodio,
     }
 
 lista = sorted(videos.values(), key=lambda v: v["publicado"])
