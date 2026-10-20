@@ -17,7 +17,13 @@
   };
   const isOwnGoal = name => norm(name) === 'golcontra';
   const sim = v => ['sim', 's', 'yes', 'true', '1', 'x'].includes(norm(v));
-  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  // "26/27", "26-27" e "2026/2027" viram "2026/27", para todas as abas usarem a mesma temporada.
+  const season = v => {
+    const s = String(v ?? '').trim();
+    const m = s.match(/^(?:20)?(\d{2})\s*[\/-]\s*(?:20)?(\d{2})$/);
+    return m ? `20${m[1]}/${m[2]}` : s;
+  };
+  const plural =(n, um, varios) => `${n} ${n === 1 ? um : varios}`;
   const ordinal = n => `${n}º`;
 
   function fmtDate(v) {
@@ -83,16 +89,16 @@
     const liga = String(cfg.competicaoliga || '');
 
     const episodes = mergeVideos(sheet(wb, 'Episodios')
-      .map(r => ({ n: num(r.episodio), temporada: String(r.temporada || ''), titulo: String(r.titulo || ''), data: fmtDate(r.data), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
+      .map(r => ({ n: num(r.episodio), temporada: season(r.temporada), titulo: String(r.titulo || ''), data: fmtDate(r.data), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
       .filter(e => e.n != null)
-      .sort((a, b) => a.n - b.n), videos, String(cfg.temporadaatual || ''));
+      .sort((a, b) => a.n - b.n), videos, season(cfg.temporadaatual));
     const epSeason = new Map(episodes.map(e => [e.n, e.temporada]));
 
     const games = sheet(wb, 'Jogos')
       .map(r => {
         const gp = num(r.golspro), gc = num(r.golscontra), ep = num(r.episodio);
         return {
-          id: num(r.jogo), ep, temporada: String(r.temporada || epSeason.get(ep) || ''),
+          id: num(r.jogo), ep, temporada: season(r.temporada) || epSeason.get(ep) || '',
           comp: String(r.competicao || ''), rodada: r.rodada, adv: String(r.adversario || ''),
           casa: norm(r.local) !== 'fora', gp, gc,
           res: gp == null || gc == null ? null : gp > gc ? 'V' : gp === gc ? 'E' : 'D',
@@ -135,10 +141,10 @@
       detentor: String(r.detentor || ''), quando: String(r.quando || ''), obs: String(r.observacao || ''), confirmado: sim(r.confirmado)
     }));
     const metas = sheet(wb, 'Metas').map(r => ({ meta: String(r.meta || ''), status: String(r.status || 'Em andamento'), obs: String(r.observacao || '') })).filter(m => m.meta);
-    const titulos = sheet(wb, 'Titulos').map(r => ({ temporada: String(r.temporada || ''), comp: String(r.competicao || ''), obs: String(r.observacao || '') })).filter(t => t.comp);
+    const titulos = sheet(wb, 'Titulos').map(r => ({ temporada: season(r.temporada), comp: String(r.competicao || ''), obs: String(r.observacao || '') })).filter(t => t.comp);
 
     const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada)].filter(Boolean))];
-    const temporadaAtual = String(cfg.temporadaatual || seasons[seasons.length - 1] || '');
+    const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
 
     return {
       cfg, clube, liga, episodes, games, tables, tableEps, elenco, recordes, metas, titulos, seasons, temporadaAtual, warnings,
