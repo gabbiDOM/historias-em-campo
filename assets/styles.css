@@ -73,7 +73,8 @@ h3 { font-size: 22px; }
   background: var(--primary); color: #fff; border: 2px solid rgba(255, 255, 255, .85);
   font: 700 22px "Barlow Condensed", sans-serif;
 }
-.escudo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.escudo { position: relative; }
+.escudo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; padding: 4px; }
 .nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
 .nav::-webkit-scrollbar { display: none; }
 .nav a {
@@ -247,6 +248,102 @@ tr.fora td { opacity: .65; }
 .trofeu { display: flex; align-items: center; gap: 12px; }
 .trofeu-ic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); color: var(--zone-playoff); flex: none; }
 
+/* ---------- escudos, logos e avatares ---------- */
+.escudo-clube {
+  position: relative; display: inline-grid; place-items: center; flex: none; vertical-align: middle;
+  width: 28px; height: 28px; border-radius: 6px; overflow: hidden; background: var(--surface-2);
+}
+.escudo-clube i { font: 700 9px Inter, sans-serif; font-style: normal; color: var(--muted); letter-spacing: .02em; }
+.escudo-clube img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--surface); }
+.escudo-clube.mini { width: 20px; height: 20px; border-radius: 4px; }
+.escudo-clube.mini i { font-size: 7px; }
+.escudo-clube.grande { width: 56px; height: 56px; border-radius: 12px; }
+.escudo-clube.grande i { font-size: 13px; }
+.logo-comp { height: 22px; width: auto; max-width: 64px; object-fit: contain; }
+.avatar.grande { width: 64px; height: 64px; font-size: 18px; }
+.clube-linha { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.placar .time { display: inline-flex; align-items: center; gap: 6px; }
+.placar .time:nth-child(1) { justify-content: flex-end; }
+
+/* ---------- spoiler ---------- */
+.spoiler { border: 1px dashed var(--line); border-radius: 10px; margin-top: 4px; }
+.spoiler summary { cursor: pointer; list-style: none; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.spoiler summary::-webkit-details-marker { display: none; }
+.spoiler summary span { font-weight: 600; color: var(--primary); }
+.spoiler summary span::before { content: "▸ "; }
+.spoiler[open] summary span::before { content: "▾ "; }
+.spoiler[open] summary span { color: var(--text); }
+.spoiler summary small { color: var(--muted); }
+.spoiler > .jogos, .spoiler > .ep-pos { margin: 0 12px 12px; }
+.spoiler > .ep-pos { display: inline-flex; }
+
+/* ---------- tabela estilo FC ---------- */
+.tabela-fc { background: #0e1a2b; color: #e9eef6; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.fc-topo { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: linear-gradient(90deg, #13233b, #0e1a2b); flex-wrap: wrap; }
+.fc-topo b { font: 700 20px "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+.fc-topo span { margin-left: auto; font-size: 13px; color: #9fb0c8; }
+.fc-topo .logo-comp { background: #fff; border-radius: 6px; padding: 2px; }
+.fc-scroll { overflow-x: auto; }
+.tabela-fc table { font-size: 13px; }
+.tabela-fc th { background: transparent; color: #9fb0c8; border-bottom: 1px solid #22344f; }
+.tabela-fc td { border-bottom: 1px solid #1a2a42; color: #c9d4e4; }
+.tabela-fc td.pts { color: #fff; }
+.tabela-fc tr.eu td { background: rgba(101, 179, 46, .18); color: #fff; font-weight: 700; }
+.tabela-fc .fc-zona td { background: #13233b; color: #9fb0c8; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 4px; border-bottom: 0; }
+.fc-clube { display: inline-flex; align-items: center; gap: 8px; }
+.tabela-fc .escudo-clube { background: #fff; }
+
+/* ---------- jogos ---------- */
+.aviso-spoiler { color: var(--muted); font-size: 14px; margin: -4px 0 16px; }
+.lista-partidas { display: grid; gap: 12px; }
+.grupo-ep { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 2px; font-size: 20px; }
+.grupo-ep span { color: var(--primary); font-size: 16px; }
+.partida { border-left: 5px solid var(--line); }
+.partida.borda-V { border-left-color: var(--win); }
+.partida.borda-E { border-left-color: var(--draw); }
+.partida.borda-D { border-left-color: var(--loss); }
+.partida-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.res-texto { margin-left: auto; font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: .05em; }
+.res-V-texto { color: var(--win); }
+.res-E-texto { color: var(--draw); }
+.res-D-texto { color: var(--loss); }
+.partida-placar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin: 14px 0 8px; }
+.partida-placar .lado { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-weight: 500; overflow-wrap: anywhere; }
+.partida-placar .lado.eu { font-weight: 700; }
+.partida-placar .centro strong { font: 700 40px "Barlow Condensed", sans-serif; white-space: nowrap; }
+.partida-placar .centro i { font-style: normal; color: var(--muted); font-size: 22px; margin: 0 8px; }
+.partida-local { text-align: center; font-size: 13px; color: var(--muted); }
+.partida .gols-lista { justify-content: center; }
+
+/* ---------- transferências ---------- */
+.filtros { display: flex; gap: 10px; flex-wrap: wrap; }
+.subtitulo { margin-bottom: 12px; font-size: 24px; }
+.chegada { display: flex; flex-direction: column; gap: 12px; position: relative; }
+.chegada-topo { display: flex; align-items: center; gap: 14px; }
+.chegada-topo h3 { font-size: 22px; }
+.chegada-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chegada-linha small { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; min-width: 78px; }
+.chegada .valor { font: 700 26px "Barlow Condensed", sans-serif; }
+.ep-tag { position: absolute; top: 14px; right: 14px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface-2); padding: 3px 8px; border-radius: 999px; }
+.positivo { color: var(--win); }
+.negativo { color: var(--loss); }
+
+/* ---------- treinador ---------- */
+.treinador { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.treinador-foto {
+  position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(160deg, var(--secondary), var(--primary)); color: rgba(255, 255, 255, .85);
+  font: 700 64px "Barlow Condensed", sans-serif;
+}
+.treinador-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sobretitulo { color: var(--primary); font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; }
+.treinador-texto h2 { margin: 2px 0 10px; }
+.treinador-texto p { margin: 0 0 10px; }
+.linha-tempo { list-style: none; margin: 16px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 8px; }
+.linha-tempo li { position: relative; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; font-size: 14px; }
+.linha-tempo li::before { content: ""; position: absolute; left: -20px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+.linha-tempo b { color: var(--primary); }
+
 .rodape { border-top: 1px solid var(--line); padding: 20px 0; font-size: 14px; }
 .rodape p { margin: 4px 0; }
 
@@ -255,4 +352,8 @@ tr.fora td { opacity: .65; }
   .hero { padding: 22px; }
   .placar .gols { font-size: 21px; }
   .marca strong { font-size: 21px; }
+  .treinador { grid-template-columns: 1fr; }
+  .treinador-foto { max-width: 280px; }
+  .partida-placar .centro strong { font-size: 32px; }
+  .escudo-clube.grande { width: 44px; height: 44px; }
 }

@@ -4,7 +4,9 @@
 
   const DATA_URL = 'dados/dados.xlsx';
   const VIDEOS_URL = 'dados/videos.json'; // gerado pela automação do GitHub a partir do feed do canal
-  const FOTOS_URL = 'dados/fotos.json'; // miniaturas da EA por nome; a coluna Foto do Elenco tem prioridade
+  const FOTOS_URL = 'dados/fotos.json'; // miniaturas da EA por nome; a coluna Foto da planilha tem prioridade
+  const CLUBES_URL = 'dados/clubes.json'; // escudos, estádios e logos de campeonatos (Wikidata); a aba Clubes tem prioridade
+  const TREINADOR_URL = 'dados/treinador.json';
   const $app = document.getElementById('app');
   const $avisos = document.getElementById('avisos');
 
@@ -24,8 +26,10 @@
     const m = s.match(/^(?:20)?(\d{2})\s*[\/-]\s*(?:20)?(\d{2})$/);
     return m ? `20${m[1]}/${m[2]}` : s;
   };
-  const plural =(n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
   const ordinal = n => `${n}º`;
+  const pad2 = n => String(n).padStart(2, '0');
+  const RES_NOME = { V: 'Vitória', E: 'Empate', D: 'Derrota' };
 
   function fmtDate(v) {
     if (typeof v === 'number') {
@@ -41,10 +45,33 @@
     const base = Number(m[1]), extra = m[2] ? Number(m[2]) : 0;
     return { texto: extra ? `${base}+${extra}'` : `${base}'`, ordem: base + extra / 100 };
   }
+  // Valores em euro: aceita número da planilha ou texto como "12 mi", "500 mil", "€ 1.200.000".
+  function parseMoney(v) {
+    if (typeof v === 'number') return v;
+    let s = String(v ?? '').toLowerCase().replace(/€|eur|\s/g, '');
+    if (!s) return null;
+    const mult = /mi|m$/.test(s) ? 1e6 : /mil|k$/.test(s) ? 1e3 : 1;
+    s = s.replace(/[a-z]/g, '');
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '');
+    const n = Number(s.replace(',', '.'));
+    return Number.isFinite(n) ? n * mult : null;
+  }
+  function fmtMoney(n) {
+    if (n == null) return '—';
+    if (n === 0) return 'Sem custo';
+    const a = Math.abs(n), f = (x, d) => x.toLocaleString('pt-BR', { maximumFractionDigits: d });
+    return a >= 1e6 ? `€ ${f(n / 1e6, 1)} mi` : a >= 1e3 ? `€ ${f(n / 1e3, 0)} mil` : `€ ${f(n, 0)}`;
+  }
   function ytId(url) {
     const m = String(url || '').match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/);
     return m ? m[1] : null;
   }
+  const initials = (name, n = 2) => String(name || '').split(/\s+/).map(w => w[0] || '').join('').slice(0, n).toUpperCase();
+  // Sigla do clube sem prefixos genéricos ("1. FC Nürnberg" -> "NÜR").
+  const clubInitials = name => {
+    const words = String(name || '').split(/\s+/).filter(w => !/^(\d+\.?|fc|vfl|sv|sc|spvgg|bsc|tsg|fsv|ssv|vfb|afc|cf|cd|ac|as|ec|se|club|clube)$/i.test(w));
+    return (words[0] || name || '?').slice(0, 3).toUpperCase();
+  };
 
   // Lê uma aba como lista de objetos, com chaves normalizadas (sem acento, minúsculas).
   function sheet(wb, name) {
@@ -82,7 +109,8 @@
   }
 
   // ---------- modelo ----------
-  function build(wb, videos, fotos) {
+  function build(wb, extras) {
+    const { videos, fotos, clubesJson, treinador } = extras;
     const cfg = {};
     sheet(wb, 'Clube').forEach(r => { if (r.chave) cfg[norm(r.chave)] = r.valor; });
 
@@ -134,7 +162,17 @@
     tables.forEach(t => t.sort((a, b) => (a.pos ?? 99) - (b.pos ?? 99)));
     const tableEps = [...tables.keys()].sort((a, b) => a - b);
 
-    const elenco = new Map();
+    // Escudos e estádios: aba Clubes (se existir) tem prioridade sobre o que a automação encontrou.
+    const clubes = new Map();
+    Object.entries((clubesJson && clubesJson.clubes) || {}).forEach(([k, v]) => clubes.set(norm(k), { escudo: v.escudo || '', estadio: v.estadio || '' }));
+    sheet(wb, 'Clubes').forEach(r => {
+      if (!r.clube) return;
+      const atual = clubes.get(norm(r.clube)) || {};
+      clubes.set(norm(r.clube), { escudo: String(r.escudo || '') || atual.escudo || '', estadio: String(r.estadio || '') || atual.estadio || '' });
+    });
+    const competicoes = new Map(Object.entries((clubesJson && clubesJson.competicoes) || {}).map(([k, v]) => [norm(k), v.logo || '']));
+
+    const fotosMap = new Map(Object.entries(fotos || {}).map(([k, v]) => [norm(k), String(v || '')]));
     // Chegada/Saida são números de episódio; o Sheets às vezes converte "1/10" em data (número grande).
     const epNum = (v, jogador, coluna) => {
       const n = num(v);
@@ -149,15 +187,53 @@
       if (/^(vend|saiu|transf|dispens|liber|aposent|rescin)/.test(n) || (!n && num(r.saida) != null)) return { situacao: 'saiu', situacaoLabel: label || 'Saiu' };
       return { situacao: '', situacaoLabel: '' };
     };
-    const fotosMap = new Map(Object.entries(fotos || {}).map(([k, v]) => [norm(k), String(v)]));
     // Origem: "Base" (cria da base), "Contratação" (reforço) ou vazio/"Elenco inicial".
     const origemTipo = v => { const n = norm(v); return n.startsWith('base') ? 'base' : /^(contrat|reforc|emprest)/.test(n) ? 'reforco' : ''; };
+
+    // Elenco = jogadores do elenco atual (até o último episódio).
+    const elenco = new Map();
     sheet(wb, 'Elenco').forEach(r => {
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
         origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida'),
-        ...situacao(r), foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
+        ...situacao(r), situacaoManual: !!situacao(r).situacao, foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
       });
+    });
+
+    // Transferências: chegadas e saídas por temporada.
+    const transfers = sheet(wb, 'Transferencias')
+      .map(r => {
+        const ep = num(r.episodio);
+        return {
+          temporada: season(r.temporada) || epSeason.get(ep) || season(cfg.temporadaatual), ep,
+          tipo: norm(r.tipo).startsWith('sa') ? 'saida' : 'chegada',
+          jogador: String(r.jogador || ''), pos: String(r.posicao || ''), idade: num(r.idade), nac: String(r.nacionalidade || ''),
+          clube: String(r.clube || ''), valor: parseMoney(r.valor), valorTexto: String(r.valor ?? ''), obs: String(r.observacao || ''),
+          foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
+        };
+      })
+      .filter(t => t.jogador)
+      .sort((a, b) => (a.ep ?? 0) - (b.ep ?? 0));
+
+    // Cada transferência, em ordem de episódio, atualiza a situação do jogador (reforço, emprestado, vendido).
+    // A coluna Situacao do Elenco, quando preenchida, tem a palavra final.
+    transfers.forEach(t => {
+      const k = norm(t.jogador);
+      const p = elenco.get(k) || { nome: t.jogador, pos: t.pos, nac: t.nac, origem: '', situacao: '', situacaoLabel: '', foto: t.foto };
+      if (!p.pos) p.pos = t.pos;
+      if (!p.nac) p.nac = t.nac;
+      if (!p.foto) p.foto = t.foto;
+      if (t.tipo === 'chegada') {
+        if (!p.origem) p.origem = 'reforco';
+        if (p.chegada == null) p.chegada = t.ep;
+        if (!p.situacaoManual) { p.situacao = ''; p.situacaoLabel = ''; p.saida = null; } // voltou ao clube
+      } else if (!p.situacaoManual) {
+        const emprestimo = norm(t.obs).startsWith('empre');
+        p.situacao = emprestimo ? 'emprestado' : 'saiu';
+        p.situacaoLabel = emprestimo ? 'Emprestado' : (t.obs || (t.valor ? 'Vendido' : 'Saiu'));
+        p.saida = t.ep;
+      }
+      elenco.set(k, p);
     });
 
     const recordes = sheet(wb, 'Recordes').map(r => ({
@@ -167,11 +243,12 @@
     const metas = sheet(wb, 'Metas').map(r => ({ meta: String(r.meta || ''), status: String(r.status || 'Em andamento'), obs: String(r.observacao || '') })).filter(m => m.meta);
     const titulos = sheet(wb, 'Titulos').map(r => ({ temporada: season(r.temporada), comp: String(r.competicao || ''), obs: String(r.observacao || '') })).filter(t => t.comp);
 
-    const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada)].filter(Boolean))];
+    const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada), ...transfers.map(t => t.temporada)].filter(Boolean))];
     const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
 
     return {
-      cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, recordes, metas, titulos, seasons, temporadaAtual, warnings,
+      cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, clubes, competicoes, transfers, treinador,
+      recordes, metas, titulos, seasons, temporadaAtual, warnings,
       // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
       totalTimes: num(cfg.totaltimes) ?? 18,
       zonas: {
@@ -263,36 +340,67 @@
     const t = M.tables.get(ep);
     return t ? t.find(r => norm(r.time) === norm(M.clube)) : null;
   }
-  function zoneClass(M, pos) {
-    const z = M.zonas;
-    if (pos <= z.acesso) return 'z-acesso';
-    if (pos === z.playoff) return 'z-playoff';
-    if (pos >= z.reb) return 'z-reb';
-    if (pos === z.playoffReb) return 'z-playoff-reb';
-    return '';
-  }
 
   // ---------- componentes ----------
+  const clubInfo = (M, name) => M.clubes.get(norm(name)) || {};
+  // Escudo com sigla por baixo: se a imagem não existir ou falhar, fica a sigla.
+  function crest(M, name, cls = '') {
+    const c = clubInfo(M, name);
+    const img = c.escudo ? `<img src="${esc(c.escudo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    return `<span class="escudo-clube ${cls}" title="${esc(name)}" aria-hidden="true"><i>${esc(clubInitials(name))}</i>${img}</span>`;
+  }
+  function compLogo(M, comp) {
+    const url = M.competicoes.get(norm(comp));
+    return url ? `<img class="logo-comp" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+  }
+  // Foto da EA quando existe; sem foto (ou se a imagem falhar) ficam as iniciais.
+  function avatar(p, cls = '') {
+    const img = p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    return `<span class="avatar ${cls}" aria-hidden="true">${esc(initials(p.nome || p.jogador))}${img}</span>`;
+  }
+  const rodadaLabel = g => g.rodada === '' ? '' : (num(g.rodada) != null ? `Rodada ${g.rodada}` : esc(g.rodada));
+  function golsLista(g) {
+    return g.gols.length ? `<ul class="gols-lista">${g.gols.map(x => `<li><span class="ic-gol"></span>${x.minuto ? `<span class="min">${x.minuto.texto}</span>` : ''}${esc(x.autor)}${x.assist ? ` <small>assist. ${esc(x.assist)}</small>` : ''}</li>`).join('')}</ul>` : '';
+  }
+
+  // Jogo compacto (dentro do card do episódio).
   function gameCard(M, g) {
     const home = g.casa ? M.clube : g.adv, away = g.casa ? g.adv : M.clube;
     const hs = g.casa ? g.gp : g.gc, as = g.casa ? g.gc : g.gp;
-    const rodada = g.rodada === '' ? '' : (num(g.rodada) != null ? `Rodada ${g.rodada}` : esc(g.rodada));
-    const gols = g.gols.length ? `<ul class="gols-lista">${g.gols.map(x => `<li><span class="ic-gol"></span>${x.minuto ? `<span class="min">${x.minuto.texto}</span>` : ''}${esc(x.autor)}${x.assist ? ` <small>assist. ${esc(x.assist)}</small>` : ''}</li>`).join('')}</ul>` : '';
+    const rodada = rodadaLabel(g);
     return `<div class="jogo">
       <div class="jogo-meta">${esc(g.comp)}${rodada ? ' · ' + rodada : ''}</div>
       <div class="placar">
-        <span class="time ${g.casa ? 'eu' : ''}">${esc(home)}</span>
+        <span class="time ${g.casa ? 'eu' : ''}">${esc(home)} ${crest(M, home, 'mini')}</span>
         <span class="gols">${hs}<i> x </i>${as}</span>
-        <span class="time ${g.casa ? '' : 'eu'}">${esc(away)}</span>
-        <span class="res res-${g.res}" title="${{ V: 'Vitória', E: 'Empate', D: 'Derrota' }[g.res]}">${g.res}</span>
-      </div>${gols}
+        <span class="time ${g.casa ? '' : 'eu'}">${crest(M, away, 'mini')} ${esc(away)}</span>
+        <span class="res res-${g.res}" title="${RES_NOME[g.res]}">${g.res}</span>
+      </div>${golsLista(g)}
     </div>`;
+  }
+
+  // Jogo completo (página Jogos): escudos, estádio, campeonato e resultado.
+  function matchCard(M, g) {
+    const home = g.casa ? M.clube : g.adv, away = g.casa ? g.adv : M.clube;
+    const hs = g.casa ? g.gp : g.gc, as = g.casa ? g.gc : g.gp;
+    const estadio = clubInfo(M, home).estadio;
+    const rodada = rodadaLabel(g);
+    return `<article class="card partida borda-${g.res}">
+      <div class="partida-meta">${compLogo(M, g.comp)}<span>${esc(g.comp)}${rodada ? ' · ' + rodada : ''}</span><span class="res-texto res-${g.res}-texto">${RES_NOME[g.res]}</span></div>
+      <div class="partida-placar">
+        <div class="lado ${g.casa ? 'eu' : ''}">${crest(M, home, 'grande')}<span>${esc(home)}</span></div>
+        <div class="centro"><strong>${hs}<i>x</i>${as}</strong></div>
+        <div class="lado ${g.casa ? '' : 'eu'}">${crest(M, away, 'grande')}<span>${esc(away)}</span></div>
+      </div>
+      <div class="partida-local">${g.casa ? 'Em casa' : 'Fora de casa'}${estadio ? ` · ${esc(estadio)}` : ''}</div>
+      ${golsLista(g)}
+    </article>`;
   }
 
   function episodeCard(M, e) {
     const id = ytId(e.link);
     const intro = isIntro(e);
-    const pad = String(e.n).padStart(2, '0');
+    const pad = pad2(e.n);
     const thumb = id
       ? `<a class="ep-thumb" href="${esc(e.link)}" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Miniatura ${intro ? 'da intro' : `do episódio ${e.n}`}" loading="lazy"><span class="play">▶ Assistir</span></a>`
       : `<div class="ep-thumb"><span class="ep-num">${intro ? 'INTRO' : `EP ${pad}`}</span>${e.link ? '' : '<span class="play">Vídeo em breve</span>'}</div>`;
@@ -301,17 +409,47 @@
     const prevEp = M.tableEps.filter(x => x < e.n).pop();
     const prev = prevEp != null ? clubRow(M, prevEp) : null;
     const delta = me && prev ? prev.pos - me.pos : 0;
-    const pos = me ? `<a class="ep-pos" href="#tabela/${e.n}">Fim do episódio: <b>${ordinal(me.pos)} lugar</b> · ${me.pts} pts${delta ? ` <span class="delta ${delta > 0 ? 'sobe' : 'desce'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}</span>` : ''}</a>` : '';
+    const pos = me ? `<span class="ep-pos">Fim do episódio: <b>${ordinal(me.pos)} lugar</b> · ${me.pts} pts${delta ? ` <span class="delta ${delta > 0 ? 'sobe' : 'desce'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}</span>` : ''}</span>` : '';
+    // Resultados escondidos por padrão: quem ainda não assistiu não leva spoiler.
+    const resultados = games.length || pos
+      ? `<details class="spoiler"><summary><span>Mostrar resultados do episódio</span><small>${plural(games.length, 'jogo', 'jogos')} · contém spoilers</small></summary>
+          <div class="jogos">${games.map(g => gameCard(M, g)).join('')}</div>${pos}
+        </details>`
+      : (intro ? '' : '<p class="mudo">Sem jogos registrados.</p>');
     return `<article class="card ep" id="ep-${e.n}">
       ${thumb}
       <div>
         <div class="ep-cabecalho"><small>${intro ? 'INTRO' : `EPISÓDIO ${pad}`}${e.temporada ? ' · ' + esc(e.temporada) : ''}</small><h3>${esc(e.titulo || (intro ? 'Intro da série' : `Episódio ${pad}`))}</h3></div>
         ${e.data ? `<div class="ep-data">Lançado em ${esc(e.data)}</div>` : ''}
         ${e.resumo ? `<p class="ep-resumo">${esc(e.resumo)}</p>` : ''}
-        ${intro && !games.length ? '' : `<div class="jogos">${games.map(g => gameCard(M, g)).join('') || '<p class="mudo">Sem jogos registrados.</p>'}</div>`}
-        ${pos}
+        ${resultados}
       </div>
     </article>`;
+  }
+
+  // Tabela no estilo do jogo: faixas de Acesso / Mata-mata / Rebaixamento.
+  function tableCard(M) {
+    const ep = M.tableEps[M.tableEps.length - 1];
+    if (ep == null) return '<div class="card"><h3>Classificação</h3><p class="mudo">A tabela aparece quando houver classificação na planilha.</p></div>';
+    const z = M.zonas, table = M.tables.get(ep);
+    const zona = pos => pos <= z.acesso ? 'Acesso' : pos === z.playoff ? 'Mata-mata: acesso' : pos >= z.reb ? 'Rebaixamento' : pos === z.playoffReb ? 'Mata-mata: rebaixamento' : '';
+    let ultimaZona = null;
+    const rows = table.map((r, i) => {
+      const zn = zona(r.pos), prev = table[i - 1];
+      let sep = '';
+      if (zn !== ultimaZona) { sep = `<tr class="fc-zona"><td colspan="10">${esc(zn)}</td></tr>`; ultimaZona = zn; }
+      else if (prev && r.pos - prev.pos > 1) sep = '<tr class="fc-zona"><td colspan="10">…</td></tr>';
+      return `${sep}<tr class="${norm(r.time) === norm(M.clube) ? 'eu' : ''}">
+        <td class="pos">${r.pos}</td><td class="esq"><span class="fc-clube">${crest(M, r.time, 'mini')}${esc(r.time)}</span></td>
+        <td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg > 0 ? '+' : ''}${r.sg}</td><td class="pts">${r.pts}</td></tr>`;
+    }).join('');
+    return `<div class="tabela-fc">
+      <div class="fc-topo">${compLogo(M, M.liga)}<b>${esc(M.liga || 'Classificação')}</b><span>${esc(M.temporadaAtual)} · fim do EP ${pad2(ep)}</span></div>
+      <div class="fc-scroll"><table>
+        <thead><tr><th>Pos</th><th class="esq">Clube</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GS</th><th>SG</th><th>Pts</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
   }
 
   function positionChart(M) {
@@ -333,6 +471,21 @@
         <text class="rotulo" x="${x(i)}" y="${y(p.row.pos) + (p.row.pos > nTeams / 2 ? -14 : 22)}" text-anchor="middle">${p.row.pos}º</text>
         <text class="eixo" x="${x(i)}" y="${H - 8}" text-anchor="middle">EP ${p.ep}</text>`).join('')}
     </svg>`;
+  }
+
+  function coachSection(M) {
+    const t = M.treinador;
+    if (!t || !t.nome) return '';
+    const img = t.imagem ? `<img src="${esc(t.imagem)}" alt="${esc(t.nome)}" loading="lazy" onerror="this.remove()">` : '';
+    return `<section class="secao card treinador">
+      <div class="treinador-foto"><span>${esc(initials(t.nome))}</span>${img}</div>
+      <div class="treinador-texto">
+        <small class="sobretitulo">${esc(t.cargo || 'O treinador')}</small>
+        <h2>${esc(t.nome)}</h2>
+        ${(t.paragrafos || []).map(p => `<p>${esc(p)}</p>`).join('')}
+        ${(t.marcos || []).length ? `<ol class="linha-tempo">${t.marcos.map(m => `<li><b>${esc(m.ano)}</b><span>${esc(m.texto)}</span></li>`).join('')}</ol>` : ''}
+      </div>
+    </section>`;
   }
 
   function recordCard(M, rec, car) {
@@ -386,16 +539,20 @@
         <div class="card stat"><small>Artilheiro da temporada</small><strong>${art ? art.g : 0}</strong><span>${art ? esc(art.nome) : '—'}${gar ? ` · Garçom: ${esc(gar.nome)} (${gar.a})` : ''}</span></div>
       </section>
 
+      <section class="secao grid grid-2">
+        ${tableCard(M)}
+        <div class="card grafico"><div class="secao-topo"><h3>Evolução na tabela</h3><a href="#jogos">Todos os jogos →</a></div>${positionChart(M)}</div>
+      </section>
+
       ${last ? `<section class="secao"><div class="secao-topo"><h2>Último episódio</h2><a href="#episodios">Todos os episódios →</a></div>${episodeCard(M, last)}</section>` : ''}
 
-      <section class="secao grid grid-2">
-        <div class="card grafico"><div class="secao-topo"><h3>Evolução na tabela</h3><a href="#tabela">Tabela completa →</a></div>${positionChart(M)}</div>
-        <div class="card"><div class="secao-topo"><h3>Recordes na mira</h3><a href="#recordes">Todos →</a></div>
-          <ul class="lista-simples">${destaques.map(({ r }) => {
-            const c = car[r.chave], s = recordStatus(r.valor, c.valor);
-            return `<li><div><b>${esc(r.titulo)}</b><small>${c.valor} de ${r.valor} · ${esc(s.texto)}</small><div class="barra" style="margin-top:6px"><span style="width:${s.pct}%"></span></div></div></li>`;
-          }).join('') || '<li class="mudo">Cadastre os recordes na aba Recordes.</li>'}</ul>
-        </div>
+      ${coachSection(M)}
+
+      <section class="secao card"><div class="secao-topo"><h3>Recordes na mira</h3><a href="#recordes">Todos →</a></div>
+        <ul class="lista-simples">${destaques.map(({ r }) => {
+          const c = car[r.chave], s = recordStatus(r.valor, c.valor);
+          return `<li><div><b>${esc(r.titulo)}</b><small>${c.valor} de ${r.valor} · ${esc(s.texto)}</small><div class="barra" style="margin-top:6px"><span style="width:${s.pct}%"></span></div></div></li>`;
+        }).join('') || '<li class="mudo">Cadastre os recordes na aba Recordes.</li>'}</ul>
       </section>`;
   }
 
@@ -405,38 +562,23 @@
       ${eps.map(e => episodeCard(M, e)).join('') || '<p class="estado">Nenhum episódio cadastrado.</p>'}`;
   }
 
-  function pageTabela(M, arg) {
-    if (!M.tableEps.length) return '<p class="estado">Nenhuma classificação cadastrada.</p>';
-    let ep = num(arg);
-    if (!M.tables.has(ep)) ep = M.tableEps[M.tableEps.length - 1];
-    const prevEp = M.tableEps.filter(x => x < ep).pop();
-    const prevPos = new Map((prevEp != null ? M.tables.get(prevEp) : []).map(r => [norm(r.time), r.pos]));
-    const table = M.tables.get(ep);
-    const rows = table.map((r, i) => {
-      const p = prevPos.get(norm(r.time));
-      const dlt = p != null ? p - r.pos : 0;
-      const delta = dlt ? `<span class="delta ${dlt > 0 ? 'sobe' : 'desce'}">${dlt > 0 ? '▲' : '▼'}${Math.abs(dlt)}</span>` : '';
-      // Linha "…" quando há posições puladas (ex.: só os 6 primeiros e o clube mais abaixo).
-      const prevRow = table[i - 1];
-      const gap = prevRow && r.pos - prevRow.pos > 1 ? '<tr class="lacuna"><td colspan="10">…</td></tr>' : '';
-      return `${gap}<tr class="${zoneClass(M, r.pos)} ${norm(r.time) === norm(M.clube) ? 'eu' : ''}">
-        <td class="pos">${r.pos}</td><td class="esq">${esc(r.time)}${delta}</td><td class="pts">${r.pts}</td>
-        <td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg > 0 ? '+' : ''}${r.sg}</td></tr>`;
-    }).join('');
-    const ep0 = M.episodes.find(e => e.n === ep);
-    return `<div class="secao-topo">
-        <div><h2>${esc(M.liga || 'Classificação')}</h2><span class="mudo">Ao final do episódio ${ep}${ep0 && ep0.titulo ? ' · ' + esc(ep0.titulo) : ''}${table.length < M.totalTimes ? ` · ${plural(table.length, 'time', 'times')} de ${M.totalTimes}` : ''}</span></div>
-        <label>Episódio <select id="sel-ep">${M.tableEps.map(x => `<option value="${x}" ${x === ep ? 'selected' : ''}>EP ${String(x).padStart(2, '0')}</option>`).join('')}</select></label>
-      </div>
-      <div class="tabela-wrap"><table>
-        <thead><tr><th>#</th><th class="esq">Time</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-      <div class="legenda">${[
-        ['l-acesso', 'Acesso direto', r => r.pos <= M.zonas.acesso],
-        ['l-playoff', 'Playoff', r => r.pos === M.zonas.playoff || r.pos === M.zonas.playoffReb],
-        ['l-reb', 'Rebaixamento', r => r.pos >= M.zonas.reb]
-      ].filter(([, , has]) => table.some(has)).map(([cls, label]) => `<span class="${cls}">${label}</span>`).join('')}</div>`;
+  // Do último jogo para o primeiro, agrupados por episódio.
+  function pageJogos(M) {
+    if (!M.games.length) return '<p class="estado">Nenhum jogo cadastrado.</p>';
+    const games = [...M.games].reverse();
+    const v = M.games.filter(g => g.res === 'V').length, e = M.games.filter(g => g.res === 'E').length, d = M.games.filter(g => g.res === 'D').length;
+    let html = '', epAtual;
+    games.forEach(g => {
+      if (g.ep !== epAtual) {
+        epAtual = g.ep;
+        const ep = M.episodes.find(x => x.n === g.ep);
+        html += `<h3 class="grupo-ep"><span>EP ${pad2(g.ep)}</span>${ep && ep.titulo ? esc(ep.titulo) : ''}</h3>`;
+      }
+      html += matchCard(M, g);
+    });
+    return `<div class="secao-topo"><h2>Jogos</h2><span class="mudo">${plural(M.games.length, 'jogo', 'jogos')} · ${v}V ${e}E ${d}D</span></div>
+      <p class="aviso-spoiler">Esta página mostra todos os resultados até o último episódio lançado.</p>
+      <div class="lista-partidas">${html}</div>`;
   }
 
   function playerTags(p) {
@@ -448,15 +590,12 @@
     return tags.length ? ` ${tags.join(' ')}` : '';
   }
 
-  // Foto da EA quando existe; sem foto (ou se a imagem falhar) ficam as iniciais.
-  function avatar(p) {
-    const ini = p.nome.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-    const img = p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
-    return `<span class="avatar" aria-hidden="true">${esc(ini)}${img}</span>`;
+  const MOSTRAR = { todos: ['Todos', () => true], atual: ['Elenco atual', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'], sairam: ['Saíram', p => p.situacao === 'saiu'] };
+  const ui = { sort: 'g', dir: -1, temporada: null, mostrar: 'todos', tempTransf: null };
+  function seasonSelect(id, value, M) {
+    return `<label>Temporada <select id="${id}"><option value="todas" ${value === 'todas' ? 'selected' : ''}>Todas</option>${M.seasons.map(s => `<option ${s === value ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>`;
   }
 
-  const MOSTRAR = { todos: ['Todos', () => true], atual: ['Elenco atual', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'], sairam: ['Saíram', p => p.situacao === 'saiu'] };
-  const ui = { sort: 'g', dir: -1, temporada: null, mostrar: 'todos' };
   function pageJogadores(M) {
     if (ui.temporada == null) ui.temporada = M.temporadaAtual || 'todas';
     const games = ui.temporada === 'todas' ? M.games : M.games.filter(g => g.temporada === ui.temporada);
@@ -470,8 +609,8 @@
     const base = list.filter(p => p.origem === 'base');
     const th = (k, label, cls = '') => `<th data-sort="${k}" class="${cls} ${ui.sort === k ? 'ordenado' : ''}">${label}${ui.sort === k ? (ui.dir < 0 ? ' ▾' : ' ▴') : ''}</th>`;
     return `<div class="secao-topo"><h2>Jogadores</h2>
-        <label>Temporada <select id="sel-temp"><option value="todas" ${ui.temporada === 'todas' ? 'selected' : ''}>Todas</option>${M.seasons.map(s => `<option ${s === ui.temporada ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
-        <label>Mostrar <select id="sel-mostrar">${Object.entries(MOSTRAR).map(([k, [label]]) => `<option value="${k}" ${k === ui.mostrar ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+        <div class="filtros">${seasonSelect('sel-temp', ui.temporada, M)}
+        <label>Mostrar <select id="sel-mostrar">${Object.entries(MOSTRAR).map(([k, [label]]) => `<option value="${k}" ${k === ui.mostrar ? 'selected' : ''}>${label}</option>`).join('')}</select></label></div>
       </div>
       <div class="grid grid-4" style="margin-bottom:16px">
         <div class="card stat"><small>Artilheiro</small><strong>${tg ? tg.g : 0}</strong><span>${tg ? esc(tg.nome) : '—'}</span></div>
@@ -483,6 +622,48 @@
         <thead><tr>${th('nome', 'Jogador', 'esq')}<th>Pos</th><th class="esq">País</th>${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
         <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>`;
+  }
+
+  function pageTransferencias(M) {
+    if (ui.tempTransf == null) ui.tempTransf = M.temporadaAtual || 'todas';
+    const lista = ui.tempTransf === 'todas' ? M.transfers : M.transfers.filter(t => t.temporada === ui.tempTransf);
+    const chegadas = lista.filter(t => t.tipo === 'chegada').reverse();
+    const saidas = lista.filter(t => t.tipo === 'saida').reverse();
+    const soma = l => l.reduce((s, t) => s + (t.valor || 0), 0);
+    const gasto = soma(chegadas), receita = soma(saidas), saldo = receita - gasto;
+    const valor = t => t.valor != null ? fmtMoney(t.valor) : esc(t.valorTexto || '—');
+    const obs = t => t.obs ? `<span class="tag${norm(t.obs).startsWith('empre') ? ' emprestado' : ''}">${esc(t.obs)}</span>` : '';
+    const clubeLinha = nome => nome ? `<span class="clube-linha">${crest(M, nome, 'mini')}${esc(nome)}</span>` : '<span class="mudo">—</span>';
+
+    const cards = chegadas.map(t => `<article class="card chegada">
+      <div class="chegada-topo">${avatar(t, 'grande')}<div><h3>${esc(t.jogador)}</h3>
+        <span class="mudo">${[t.pos, t.idade != null ? `${t.idade} anos` : '', t.nac].filter(Boolean).map(esc).join(' · ')}</span></div></div>
+      <div class="chegada-linha"><small>Veio do</small>${clubeLinha(t.clube)}</div>
+      <div class="chegada-linha"><small>Valor pago</small><strong class="valor">${valor(t)}</strong>${obs(t)}</div>
+      ${t.ep != null ? `<span class="ep-tag">EP ${pad2(t.ep)}</span>` : ''}
+    </article>`).join('');
+
+    const linhas = saidas.map(t => `<tr>
+      <td class="esq"><span class="jogador">${avatar(t)}<span>${esc(t.jogador)} ${obs(t)}</span></span></td>
+      <td class="mudo">${esc(t.pos)}</td>
+      <td class="esq">${clubeLinha(t.clube)}</td>
+      <td class="pts">${valor(t)}</td>
+      <td class="mudo">${t.ep != null ? `EP ${pad2(t.ep)}` : ''}</td></tr>`).join('');
+
+    return `<div class="secao-topo"><h2>Transferências</h2>${seasonSelect('sel-transf', ui.tempTransf, M)}</div>
+      <div class="grid grid-3" style="margin-bottom:8px">
+        <div class="card stat"><small>Investido em chegadas</small><strong>${fmtMoney(gasto)}</strong><span>${plural(chegadas.length, 'chegada', 'chegadas')}</span></div>
+        <div class="card stat"><small>Arrecadado com saídas</small><strong>${fmtMoney(receita)}</strong><span>${plural(saidas.length, 'saída', 'saídas')}</span></div>
+        <div class="card stat"><small>Saldo</small><strong class="${saldo >= 0 ? 'positivo' : 'negativo'}">${saldo < 0 ? '−' : ''}${fmtMoney(Math.abs(saldo))}</strong><span>${saldo >= 0 ? 'lucro no mercado' : 'investimento líquido'}</span></div>
+      </div>
+      <section class="secao"><h3 class="subtitulo">Chegadas</h3>
+        ${cards ? `<div class="grid grid-3">${cards}</div>` : '<p class="mudo">Nenhuma chegada registrada nesta temporada.</p>'}
+      </section>
+      <section class="secao"><h3 class="subtitulo">Saídas</h3>
+        ${linhas ? `<div class="tabela-wrap"><table>
+          <thead><tr><th class="esq">Jogador</th><th>Pos</th><th class="esq">Destino</th><th>Valor recebido</th><th>Ep.</th></tr></thead>
+          <tbody>${linhas}</tbody></table></div>` : '<p class="mudo">Nenhuma saída registrada nesta temporada.</p>'}
+      </section>`;
   }
 
   function pageRecordes(M) {
@@ -507,7 +688,7 @@
 
   // ---------- roteador ----------
   let MODEL = null;
-  const pages = { inicio: pageInicio, episodios: pageEpisodios, tabela: pageTabela, jogadores: pageJogadores, recordes: pageRecordes };
+  const pages = { inicio: pageInicio, episodios: pageEpisodios, jogos: pageJogos, jogadores: pageJogadores, transferencias: pageTransferencias, recordes: pageRecordes };
   let lastPage = null;
 
   function render() {
@@ -520,9 +701,9 @@
   }
 
   $app.addEventListener('change', ev => {
-    if (ev.target.id === 'sel-ep') location.hash = `#tabela/${ev.target.value}`;
     if (ev.target.id === 'sel-temp') { ui.temporada = ev.target.value; render(); }
     if (ev.target.id === 'sel-mostrar') { ui.mostrar = ev.target.value; render(); }
+    if (ev.target.id === 'sel-transf') { ui.tempTransf = ev.target.value; render(); }
   });
   $app.addEventListener('click', ev => {
     const th = ev.target.closest('th[data-sort]');
@@ -544,9 +725,11 @@
     document.getElementById('sub-portal').textContent = `${M.clube} · Modo Carreira FC27`;
     if (M.cfg.canal) document.getElementById('rodape-canal').textContent = M.cfg.canal;
     if (M.cfg.linkcanal) document.getElementById('rodape-canal').href = M.cfg.linkcanal;
+    // Escudo do topo: o da aba Clube; senão o encontrado pela automação; senão a inicial.
     const escudo = document.getElementById('escudo');
-    if (M.cfg.escudo) escudo.innerHTML = `<img src="${esc(M.cfg.escudo)}" alt="Escudo do ${esc(M.clube)}">`;
-    else escudo.textContent = (M.clube.split(/\s+/).pop() || 'C')[0].toUpperCase();
+    const src = String(M.cfg.escudo || '') || clubInfo(M, M.clube).escudo;
+    escudo.textContent = (M.clube.split(/\s+/).pop() || 'C')[0].toUpperCase();
+    if (src) escudo.insertAdjacentHTML('beforeend', `<img src="${esc(src)}" alt="Escudo do ${esc(M.clube)}" referrerpolicy="no-referrer" onerror="this.remove()">`);
 
     const avisos = [];
     if (sim(M.cfg.dadosexemplo)) avisos.push('<div class="aviso"><b>Dados de exemplo.</b> Jogadores, placares e tabelas são fictícios, só para mostrar o formato do portal.</div>');
@@ -558,13 +741,14 @@
     try {
       if (typeof XLSX === 'undefined') throw new Error('A biblioteca de leitura de planilhas não carregou. Verifique a conexão.');
       const bust = `?v=${Date.now()}`;
-      // Os vídeos são opcionais: sem o arquivo, o site usa só a planilha.
+      // Arquivos de apoio são opcionais: sem eles, o site usa só a planilha.
       const optional = url => fetch(url + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
-      const videosReq = optional(VIDEOS_URL), fotosReq = optional(FOTOS_URL);
+      const extrasReq = Promise.all([VIDEOS_URL, FOTOS_URL, CLUBES_URL, TREINADOR_URL].map(optional));
       const res = await fetch(DATA_URL + bust, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Não foi possível baixar ${DATA_URL} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-      MODEL = build(wb, await videosReq, await fotosReq);
+      const [videos, fotos, clubesJson, treinador] = await extrasReq;
+      MODEL = build(wb, { videos, fotos, clubesJson, treinador });
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();

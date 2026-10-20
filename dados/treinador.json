@@ -1,0 +1,20 @@
+{
+  "nome": "Andrés D'Alessandro",
+  "cargo": "Treinador do VfL Wolfsburg",
+  "imagem": "assets/treinador.jpg",
+  "paragrafos": [
+    "Nascido em Buenos Aires em 15 de abril de 1981, Andrés Nicolás D'Alessandro foi revelado pelo River Plate. Canhoto, habilidoso e criativo, o \"Cabezón\" virou um dos meias mais talentosos da sua geração.",
+    "Em 2003 trocou a Argentina pela Alemanha e vestiu a camisa do VfL Wolfsburg até 2006. Foi a primeira experiência na Europa e o início de uma ligação com a cidade dos Lobos.",
+    "Depois de Portsmouth, Real Zaragoza e San Lorenzo, chegou ao Internacional em 2008 e se tornou ídolo: conquistou a Copa Sul-Americana, a Libertadores de 2010 e foi eleito o Rei da América naquele ano.",
+    "Agora a história dá a volta: D'Alessandro retorna a Wolfsburg, desta vez à beira do campo, com a missão de devolver os Lobos à Bundesliga."
+  ],
+  "marcos": [
+    { "ano": "2000", "texto": "Estreia profissional pelo River Plate" },
+    { "ano": "2001", "texto": "Campeão mundial sub-20 com a Argentina" },
+    { "ano": "2003–2006", "texto": "VfL Wolfsburg, primeira passagem pela Europa" },
+    { "ano": "2004", "texto": "Medalha de ouro olímpica em Atenas" },
+    { "ano": "2008", "texto": "Chega ao Internacional e vence a Copa Sul-Americana" },
+    { "ano": "2010", "texto": "Campeão da Libertadores e Rei da América" },
+    { "ano": "2026/27", "texto": "Volta a Wolfsburg como treinador" }
+  ]
+}
