@@ -437,6 +437,44 @@ tr.fora td { opacity: .65; }
 .partida-placar .centro strong { font: 700 40px "Barlow Condensed", sans-serif; white-space: nowrap; }
 .partida-placar .centro i { font-style: normal; color: var(--muted); font-size: 22px; margin: 0 8px; }
 .partida-local { text-align: center; font-size: 13px; color: var(--muted); }
+
+/* temas por campeonato: tokens redefinidos dentro do card para o texto continuar legível */
+.partida.tema-liga, .partida.tema-copa, .partida.tema-europa {
+  --text: #eef5ef; --muted: rgba(232, 242, 234, .7); --line: rgba(255, 255, 255, .16); --surface-2: rgba(255, 255, 255, .1); --surface: #fff;
+  position: relative; overflow: hidden; isolation: isolate; color: var(--text);
+}
+/* liga: gramado com listras de corte e brilho vermelho da Bundesliga */
+.partida.tema-liga {
+  background:
+    radial-gradient(55% 90% at 100% 0%, rgba(210, 5, 21, .28), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 56px, transparent 56px 112px),
+    linear-gradient(180deg, #17402a, #0d2417);
+}
+.partida.tema-liga .partida-meta span:first-of-type { color: #ff6b74; }
+/* copa: preto e dourado, com troféu ao fundo */
+.partida.tema-copa {
+  --muted: rgba(240, 226, 186, .72); border-top-color: rgba(212, 175, 55, .45); border-right-color: rgba(212, 175, 55, .45); border-bottom-color: rgba(212, 175, 55, .45);
+  background:
+    radial-gradient(60% 100% at 50% 0%, rgba(212, 175, 55, .3), transparent 65%),
+    repeating-linear-gradient(135deg, rgba(212, 175, 55, .07) 0 1px, transparent 1px 14px),
+    linear-gradient(180deg, #1c1709, #0b0906);
+}
+.partida.tema-copa::after {
+  content: ""; position: absolute; z-index: -1; right: 4%; bottom: -12px; width: 150px; height: 150px; opacity: .1;
+  background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3E%3Cpath d='M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3zm0 4H6v1a2 2 0 0 0 1 1.7V7zm10 0v2.7A2 2 0 0 0 18 8V7h-1z'/%3E%3C/svg%3E");
+}
+.partida.tema-copa .partida-meta span:first-of-type { color: #e8c766; }
+.partida.tema-copa .centro strong { color: #f3dc8f; }
+.partida.tema-copa .ic-gol { background: #d4af37; }
+/* europa: azul noturno com estrelas */
+.partida.tema-europa {
+  background:
+    radial-gradient(rgba(255, 255, 255, .25) 1px, transparent 1.5px) 0 0 / 22px 22px,
+    radial-gradient(60% 100% at 50% 0%, rgba(80, 130, 255, .35), transparent 65%),
+    linear-gradient(180deg, #0f1d44, #070d22);
+}
+.partida.tema-europa .partida-meta span:first-of-type { color: #9db8ff; }
+.partida[class*="tema-"] .logo-comp { background: #fff; border-radius: 6px; padding: 2px 4px; }
 .partida .gols-lista { justify-content: center; }
 
 /* ---------- transferências ---------- */

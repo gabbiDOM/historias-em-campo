@@ -387,13 +387,22 @@
     </div>`;
   }
 
+  // Tema visual do card pelo nome do campeonato: liga, copa, europa ou padrão.
+  function compTema(comp) {
+    const n = norm(comp);
+    if (/champions|europa|conference|uefa/.test(n)) return 'europa';
+    if (/pokal|copa|cup|taca|supercup|supercopa/.test(n)) return 'copa';
+    if (/liga|bundesliga|league|serie|division/.test(n)) return 'liga';
+    return 'padrao';
+  }
+
   // Jogo completo (página Jogos): escudos, estádio, campeonato e resultado.
   function matchCard(M, g) {
     const home = g.casa ? M.clube : g.adv, away = g.casa ? g.adv : M.clube;
     const hs = g.casa ? g.gp : g.gc, as = g.casa ? g.gc : g.gp;
     const estadio = clubInfo(M, home).estadio;
     const rodada = rodadaLabel(g);
-    return `<article class="card partida borda-${g.res}">
+    return `<article class="card partida borda-${g.res} tema-${compTema(g.comp)}">
       <div class="partida-meta">${compLogo(M, g.comp)}<span>${esc(g.comp)}${rodada ? ' · ' + rodada : ''}</span><span class="res-texto res-${g.res}-texto">${RES_NOME[g.res]}</span></div>
       <div class="partida-placar">
         <div class="lado ${g.casa ? 'eu' : ''}">${crest(M, home, 'grande')}<span>${esc(home)}</span></div>
