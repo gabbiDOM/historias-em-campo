@@ -21,6 +21,11 @@ jobs:
       - name: Buscar vídeos da série no YouTube
         run: python3 .github/scripts/youtube.py
 
+      - name: Buscar escudos, estádios e fotos
+        run: |
+          pip install --quiet openpyxl
+          python3 .github/scripts/enriquecer.py
+
       - name: Salvar e republicar se mudou
         env:
           GH_TOKEN: ${{ github.token }}
