@@ -268,22 +268,47 @@ tr.fora td { opacity: .65; }
 .destaque-linha { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
 .destaque-linha strong { margin-top: 0; }
 
+/* cards do topo do Início: verde profundo com listras finas e filete de destaque */
+.stat-tile {
+  --muted: rgba(232, 242, 234, .66);
+  position: relative; overflow: hidden; color: #eef5ef; border-color: rgba(101, 179, 46, .28);
+  background:
+    radial-gradient(110% 120% at 100% 0%, rgba(101, 179, 46, .26), transparent 55%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 1px, transparent 1px 9px),
+    linear-gradient(160deg, #173a24, #0d1f14);
+}
+.stat-tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(#8ee53f, #2f8a45); }
+.stat-tile strong { color: #fff; }
+
 /* card do artilheiro (Início) */
 .artilheiro {
-  position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46%); min-height: 340px;
-  padding: 0; border: 0; color: #fff;
-  background: radial-gradient(120% 90% at 85% 100%, var(--primary) 0%, transparent 60%), linear-gradient(150deg, var(--secondary), #0c2414);
+  position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 52%); min-height: 400px;
+  padding: 0; border: 0; color: #fff; isolation: isolate;
+  background:
+    radial-gradient(70% 80% at 78% 95%, rgba(142, 229, 63, .55) 0%, transparent 60%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .05) 0 26px, transparent 26px 90px),
+    linear-gradient(150deg, #1f5f31, #0a1f12 75%);
+}
+/* retícula de pontos que some em direção ao texto */
+.artilheiro::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(rgba(255, 255, 255, .14) 1px, transparent 1.6px) 0 0 / 12px 12px;
+  -webkit-mask-image: linear-gradient(100deg, transparent 30%, #000 85%); mask-image: linear-gradient(100deg, transparent 30%, #000 85%);
+}
+.artilheiro-marca {
+  position: absolute; right: -10px; top: -30px; z-index: -1; font: 700 260px/1 "Barlow Condensed", sans-serif;
+  color: transparent; -webkit-text-stroke: 2px rgba(255, 255, 255, .12); pointer-events: none;
 }
 .artilheiro-texto { padding: 22px; display: flex; flex-direction: column; gap: 6px; z-index: 1; }
 .artilheiro .sobretitulo { color: #b9f28c; }
 .artilheiro h2 { font-size: 44px; }
 .artilheiro-info { opacity: .8; font-size: 14px; }
-.artilheiro-numeros { display: flex; gap: 18px; margin: 10px 0 16px; flex-wrap: wrap; }
+.artilheiro-numeros { display: flex; gap: 10px 16px; margin: 10px 0 16px; flex-wrap: wrap; }
 .artilheiro-numeros strong { display: block; font: 700 40px/1 "Barlow Condensed", sans-serif; }
 .artilheiro-numeros small { opacity: .75; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
 .artilheiro .botao { margin-top: auto; align-self: flex-start; }
 .artilheiro-foto { position: relative; display: flex; align-items: flex-end; justify-content: center; }
-.artilheiro-foto img { position: absolute; bottom: 0; right: 0; height: 100%; width: 100%; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .45)); }
+.artilheiro-foto img { position: absolute; bottom: 0; right: -6%; height: 97%; width: 116%; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .45)); }
 .artilheiro-foto .avatar { margin: auto; }
 
 /* destaque da temporada (Início): lado claro para o logo, painel verde com filete vermelho para a arte */
@@ -322,8 +347,8 @@ tr.fora td { opacity: .65; }
 @media (prefers-reduced-motion: reduce) { .ponto-vivo { animation: none; } }
 .contagem { display: inline-flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
 .contagem-rotulo { font-size: 12px; font-weight: 600; color: var(--muted); }
-.contagem b { font: 700 22px/1 "Barlow Condensed", sans-serif; color: var(--text); }
-.contagem small { font-size: 11px; color: var(--muted); margin-left: 1px; }
+.contagem b { font: 700 26px/1 "Barlow Condensed", sans-serif; color: #8ee53f; }
+.contagem small { font: 600 15px/1 "Barlow Condensed", sans-serif; color: var(--muted); margin-left: 2px; text-transform: uppercase; letter-spacing: .03em; }
 .contagem.no-ar .contagem-rotulo { color: #e5333a; font-size: 14px; font-weight: 700; }
 
 /* metas */
@@ -339,6 +364,20 @@ tr.fora td { opacity: .65; }
 .meta-corpo p { margin: 0; color: var(--muted); font-size: 14px; }
 .meta-concluida { border-color: var(--win); }
 .meta-falhou .meta-img { filter: grayscale(.7); }
+
+/* último episódio (Início): mesmo card, com fundo de destaque; tokens redefinidos só aqui dentro */
+.ep-destaque .ep {
+  --text: #eef5ef; --muted: rgba(232, 242, 234, .7); --line: rgba(255, 255, 255, .16); --surface-2: rgba(255, 255, 255, .08); --surface: #12291a;
+  color: var(--text); border-color: rgba(229, 51, 58, .35); position: relative; overflow: hidden;
+  background:
+    radial-gradient(60% 120% at 0% 100%, rgba(215, 25, 32, .28), transparent 60%),
+    radial-gradient(60% 120% at 100% 0%, rgba(101, 179, 46, .25), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .03) 0 1px, transparent 1px 10px),
+    linear-gradient(150deg, #173a24, #0b1d12);
+}
+.ep-destaque .ep::before { content: "NOVO"; position: absolute; top: 14px; right: -34px; transform: rotate(35deg); background: #d71920; color: #fff; font: 700 12px Inter, sans-serif; letter-spacing: .1em; padding: 4px 40px; }
+.ep-destaque .ep-cabecalho small { color: #8ee53f; }
+.ep-destaque .ep-thumb { box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
 
 /* nacionalidades */
 .nacionalidades { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -430,6 +469,15 @@ tr.fora td { opacity: .65; }
 .linha-tempo li { position: relative; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; font-size: 14px; }
 .linha-tempo li::before { content: ""; position: absolute; left: -20px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
 .linha-tempo b { color: var(--primary); }
+
+/* redes do canal (fim de todas as páginas) */
+.redes { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 18px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.redes-titulo { font: 700 22px "Barlow Condensed", sans-serif; margin-right: auto; }
+.botao-rede { display: inline-flex; align-items: center; gap: 10px; padding: 11px 20px; border-radius: 999px; color: #fff; text-decoration: none; font-weight: 700; font-size: 15px; transition: transform .15s ease, filter .15s ease; }
+.botao-rede:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.botao-rede svg { width: 20px; height: 20px; flex: none; }
+.botao-rede.yt { background: #e62117; }
+.botao-rede.ig { background: linear-gradient(45deg, #f9a825, #e1306c 45%, #833ab4); }
 
 .rodape { border-top: 1px solid var(--line); padding: 20px 0; font-size: 14px; }
 .rodape p { margin: 4px 0; }

@@ -466,6 +466,7 @@
     const corpo = M.fotosCorpoMap.get(norm(art.nome));
     const media = jogos ? (art.g / jogos).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '0';
     return `<div class="card artilheiro">
+      <span class="artilheiro-marca" aria-hidden="true">${art.g}</span>
       <div class="artilheiro-texto">
         <small class="sobretitulo">Artilheiro da temporada</small>
         <h2>${esc(art.nome)}</h2>
@@ -628,10 +629,10 @@
       ${agendaBar(M)}
 
       <section class="secao grid grid-4">
-        <div class="card stat"><small>Posição atual</small><strong>${me ? ordinal(me.pos) : '—'}</strong><span>${me ? `${me.pts} pts · ${esc(M.liga)}` : 'sem tabela'}</span></div>
-        <div class="card stat"><small>Campanha na temporada</small><strong>${v}V ${e}E ${d}D</strong><div class="forma" aria-label="Últimos jogos">${forma}</div></div>
-        <div class="card stat"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(season.length, 'jogo', 'jogos')}</span></div>
-        <div class="card stat"><small>Garçom da temporada</small><strong>${gar ? gar.a : 0}</strong><span>${gar ? `${esc(gar.nome)} · assistências` : '—'}</span></div>
+        <div class="card stat stat-tile"><small>Posição atual</small><strong>${me ? ordinal(me.pos) : '—'}</strong><span>${me ? `${me.pts} pts · ${esc(M.liga)}` : 'sem tabela'}</span></div>
+        <div class="card stat stat-tile"><small>Campanha na temporada</small><strong>${v}V ${e}E ${d}D</strong><div class="forma" aria-label="Últimos jogos">${forma}</div></div>
+        <div class="card stat stat-tile"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(season.length, 'jogo', 'jogos')}</span></div>
+        <div class="card stat stat-tile"><small>Garçom da temporada</small><strong>${gar ? gar.a : 0}</strong><span>${gar ? `${esc(gar.nome)} · assistências` : '—'}</span></div>
       </section>
 
       <section class="secao grid grid-2">
@@ -639,7 +640,7 @@
         ${scorerCard(M, art, season.length)}
       </section>
 
-      ${last ? `<section class="secao"><div class="secao-topo"><h2>Último episódio</h2><a href="#episodios">Todos os episódios →</a></div>${episodeCard(M, last)}</section>` : ''}
+      ${last ? `<section class="secao"><div class="secao-topo"><h2>Último episódio</h2><a href="#episodios">Todos os episódios →</a></div><div class="ep-destaque">${episodeCard(M, last)}</div></section>` : ''}
 
       ${coachSection(M)}
 
@@ -869,7 +870,7 @@
     document.getElementById('rodape-portal').textContent = nome;
     document.getElementById('sub-portal').textContent = `${M.clube} · Modo Carreira Realista · FC 27`;
     if (M.cfg.canal) document.getElementById('rodape-canal').textContent = M.cfg.canal;
-    if (M.cfg.linkcanal) document.getElementById('rodape-canal').href = M.cfg.linkcanal;
+    if (M.cfg.linkcanal) document.getElementById('rodape-canal').href = document.getElementById('link-youtube').href = M.cfg.linkcanal;
     // Escudo do topo: o da aba Clube; senão o encontrado pela automação; senão a inicial.
     const escudo = document.getElementById('escudo');
     const src = String(M.cfg.escudo || '') || clubInfo(M, M.clube).escudo;
