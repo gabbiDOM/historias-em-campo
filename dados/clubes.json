@@ -1,0 +1,104 @@
+{
+  "clubes": {
+    "1. FC Kaiserslautern": {
+      "wikidata": "Q8466",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_1_FC_Kaiserslautern.svg?width=160",
+      "estadio": "Fritz-Walter-Stadion"
+    },
+    "1. FC Magdeburg": {
+      "wikidata": "Q155730",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_Magdeburg.svg?width=160",
+      "estadio": "Avnet Arena"
+    },
+    "1. FC Nürnberg": {
+      "wikidata": "Q15786",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_N%C3%BCrnberg_logo.svg?width=160",
+      "estadio": "Max-Morlock-Stadion"
+    },
+    "1. Fußballclub Heidenheim 1846": {
+      "wikidata": "Q162251",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_Heidenheim_1846.svg?width=160",
+      "estadio": "Voith-Arena"
+    },
+    "Arminia Bielefeld": {
+      "wikidata": "Q105844",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Arminia_Bielefeld_Logo_2021%E2%80%93.svg?width=160",
+      "estadio": "SchücoArena"
+    },
+    "Eintracht Braunschweig": {
+      "wikidata": "Q154053",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/600px_Giallo_e_Blu_con_stemma_Eintracht_Braunschweig.png?width=160",
+      "estadio": "Eintracht-Stadion"
+    },
+    "FC St. Pauli": {
+      "wikidata": "Q6463",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Fc_st_pauli_logo.svg/250px-Fc_st_pauli_logo.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Millerntor-Stadion"
+    },
+    "Fußball-Club Energie Cottbus": {
+      "wikidata": "Q107818",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_Energie_Cottbus.svg?width=160",
+      "estadio": "LEAG Energie Stadion"
+    },
+    "Hannover 96": {
+      "wikidata": "Q33748",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Hannover_96_Logo.svg?width=160",
+      "estadio": "Heinz-von-Heiden-Arena"
+    },
+    "Hertha BSC": {
+      "wikidata": "Q102720",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Hertha_BSC_Logo_2012.svg?width=160",
+      "estadio": "Olympiastadion Berlin"
+    },
+    "Karlsruher SC": {
+      "wikidata": "Q105853",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Karlsruher_SC_Logo_2.svg?width=160",
+      "estadio": "Wildparkstadion"
+    },
+    "Kieler Sportvereinigung Holstein von 1900 e.V.": {
+      "wikidata": "Q157828",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Holstein_Kiel_Logo.svg?width=160",
+      "estadio": "Holstein-Stadion"
+    },
+    "SV Darmstadt 98": {
+      "wikidata": "Q479351",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/SV_Darmstadt_98_Logo.svg?width=160",
+      "estadio": "Stadion am Böllenfalltor"
+    },
+    "SpVgg Greuther Fürth": {
+      "wikidata": "Q153539",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/SpVgg_Greuther_F%C3%BCrth_2017.svg?width=160",
+      "estadio": "Sportpark Ronhof"
+    },
+    "Sport-Club Freiburg": {
+      "wikidata": "Q106394",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/b/bf/SC_Freiburg_Logo.svg/250px-SC_Freiburg_Logo.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Europa-Park-Stadion"
+    },
+    "Verein für Leibesübungen von 1899": {
+      "wikidata": "Q160530",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfL_Osnabrueck_Logo_2021%E2%80%93.svg?width=160",
+      "estadio": "Bremer Brücke"
+    },
+    "VfL Bochum": {
+      "wikidata": "Q105861",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfL_Bochum_logo.svg?width=160",
+      "estadio": "Ruhrstadion"
+    },
+    "VfL Wolfsburg": {
+      "wikidata": "Q101859",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfL_Wolfsburg_logo_2026.svg?width=160",
+      "estadio": "Volkswagen Arena"
+    }
+  },
+  "competicoes": {
+    "2. Bundesliga": {
+      "wikidata": "Q152665",
+      "logo": "https://commons.wikimedia.org/wiki/Special:FilePath/Bundesliga2.png?width=160"
+    },
+    "DFB-Pokal": {
+      "wikidata": "Q150880",
+      "logo": "https://commons.wikimedia.org/wiki/Special:FilePath/DFB-Pokal_Wordmark.svg?width=160"
+    }
+  }
+}
