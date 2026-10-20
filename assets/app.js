@@ -8,6 +8,7 @@
   const CLUBES_URL = 'dados/clubes.json'; // escudos, estádios e logos de campeonatos (Wikidata); a aba Clubes tem prioridade
   const FOTOS_CORPO_URL = 'dados/fotos-corpo.json'; // foto de corpo inteiro, usada no card do artilheiro
   const TREINADOR_URL = 'dados/treinador.json';
+  const TEMPORADAS_URL = 'dados/temporadas.json'; // nome e logo de cada temporada da série
   const $app = document.getElementById('app');
   const $avisos = document.getElementById('avisos');
 
@@ -111,7 +112,7 @@
 
   // ---------- modelo ----------
   function build(wb, extras) {
-    const { videos, fotos, clubesJson, treinador, fotosCorpo } = extras;
+    const { videos, fotos, clubesJson, treinador, fotosCorpo, temporadas } = extras;
     const cfg = {};
     sheet(wb, 'Clube').forEach(r => { if (r.chave) cfg[norm(r.chave)] = r.valor; });
 
@@ -242,15 +243,20 @@
       chave: norm(r.chave), titulo: String(r.recorde || r.chave), valor: num(r.valor),
       detentor: String(r.detentor || ''), quando: String(r.quando || ''), obs: String(r.observacao || ''), confirmado: sim(r.confirmado)
     }));
-    const metas = sheet(wb, 'Metas').map(r => ({ meta: String(r.meta || ''), status: String(r.status || 'Em andamento'), obs: String(r.observacao || '') })).filter(m => m.meta);
+    // Metas: Imagem (arquivo em assets/metas/ ou link), Atual/Alvo para a barra de progresso e Temporada opcionais.
+    const metas = sheet(wb, 'Metas').map(r => ({
+      meta: String(r.meta || ''), status: String(r.status || 'Em andamento'), obs: String(r.observacao || ''),
+      imagem: String(r.imagem || ''), atual: num(r.atual), alvo: num(r.alvo), temporada: season(r.temporada)
+    })).filter(m => m.meta);
     const titulos = sheet(wb, 'Titulos').map(r => ({ temporada: season(r.temporada), comp: String(r.competicao || ''), obs: String(r.observacao || '') })).filter(t => t.comp);
 
     const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada), ...transfers.map(t => t.temporada)].filter(Boolean))];
     const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
+    const temporadaInfo = Object.entries(temporadas || {}).find(([k]) => season(k) === temporadaAtual)?.[1] || {};
 
     return {
       cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, fotosCorpoMap, clubes, competicoes, transfers, treinador,
-      recordes, metas, titulos, seasons, temporadaAtual, warnings,
+      recordes, metas, titulos, seasons, temporadaAtual, temporadaInfo, warnings,
       // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
       totalTimes: num(cfg.totaltimes) ?? 18,
       zonas: {
@@ -544,10 +550,17 @@
       .slice(0, 3);
 
     const link = M.cfg.linkcanal ? `<a class="botao" href="${esc(M.cfg.linkcanal)}" target="_blank" rel="noopener">▶ Assistir no YouTube</a>` : '';
+    // Destaque é a temporada (ex.: "Entre o Tango e os Lobos"); "Histórias em Campo" é a série.
+    const temp = M.temporadaInfo;
+    const serie = String(M.cfg.nomeportal || 'Histórias em Campo');
+    const titulo = temp.logo
+      ? `<img src="${esc(temp.logo)}" alt="${esc(temp.nome || serie)}" onerror="this.parentNode.textContent=this.alt">`
+      : esc(temp.nome || serie);
     return `
-      <section class="hero">
-        <h1>${esc(M.cfg.nomeportal || 'Histórias em Campo')}</h1>
-        <p>${esc(M.clube)} · Temporada ${esc(M.temporadaAtual)}${M.liga ? ' · ' + esc(M.liga) : ''}. Episódios, resultados, artilharia e os recordes que a série quer quebrar.</p>
+      <section class="hero hero-temporada">
+        <h1 class="hero-logo">${titulo}</h1>
+        <p class="hero-serie">Uma temporada da série <b>${esc(serie)}</b> · Modo Carreira Realista · FC 27</p>
+        <p>${esc(M.clube)} · Temporada ${esc(M.temporadaAtual)}${M.liga ? ' · ' + esc(M.liga) : ''}. Episódios, resultados, metas e os recordes que a série quer quebrar.</p>
         <div class="botoes">${link}<a class="botao secundario" href="#episodios">Ver episódios</a></div>
       </section>
 
@@ -710,18 +723,41 @@
       </section>`;
   }
 
+  const statusCls = s => { const n = norm(s); return n.startsWith('conclu') ? 'concluida' : n.startsWith('falh') ? 'falhou' : 'andamento'; };
+  const ALVO_IC = '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>';
+
+  function metaCard(m) {
+    const src = !m.imagem ? '' : /^(https?:)?\/\/|\//.test(m.imagem) ? m.imagem : `assets/metas/${m.imagem}`;
+    const cls = statusCls(m.status);
+    const pct = m.alvo ? Math.min(100, Math.round((m.atual || 0) / m.alvo * 100)) : null;
+    return `<article class="card meta meta-${cls}">
+      <div class="meta-img">${ALVO_IC}${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="status ${cls}">${esc(m.status)}</span></div>
+      <div class="meta-corpo">
+        <h3>${esc(m.meta)}</h3>
+        ${m.obs ? `<p>${esc(m.obs)}</p>` : ''}
+        ${pct != null ? `<div class="barra"><span style="width:${pct}%"></span></div><small class="mudo">${m.atual ?? 0} de ${m.alvo}</small>` : ''}
+      </div>
+    </article>`;
+  }
+
+  function pageMetas(M) {
+    // Metas sem temporada valem para a temporada atual.
+    const metas = M.metas.filter(m => !m.temporada || m.temporada === M.temporadaAtual);
+    const conta = c => metas.filter(m => statusCls(m.status) === c).length;
+    const nome = M.temporadaInfo.nome ? `${esc(M.temporadaInfo.nome)} · ` : '';
+    return `<div class="secao-topo"><div><h2>Metas da temporada</h2><span class="mudo">${nome}${esc(M.temporadaAtual)}</span></div>
+        <span class="mudo">${conta('concluida')} concluídas · ${conta('andamento')} em andamento · ${conta('falhou')} não alcançadas</span></div>
+      ${metas.length ? `<div class="grid grid-3">${metas.map(metaCard).join('')}</div>` : '<p class="estado">Cadastre as metas na aba Metas da planilha.</p>'}`;
+  }
+
   function pageRecordes(M) {
     const car = careerRecords(M);
     const reais = M.recordes.find(r => r.chave === 'titulos');
-    const statusCls = s => { const n = norm(s); return n.startsWith('conclu') ? 'concluida' : n.startsWith('falh') ? 'falhou' : 'andamento'; };
     const trofeuIc = '<span class="trofeu-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3zm0 4H6v1a2 2 0 0 0 1 1.7V7zm10 0v2.7A2 2 0 0 0 18 8V7h-1z"/></svg></span>';
     return `<div class="secao-topo"><h2>Recordes históricos</h2><span class="mudo">Recordes reais do clube até o início da série vs. a carreira</span></div>
       <div class="grid grid-3">${M.recordes.map(r => recordCard(M, r, car)).join('')}</div>
 
-      <section class="secao grid grid-2">
-        <div class="card"><h3>Metas da carreira</h3>
-          <ul class="lista-simples" style="margin-top:8px">${M.metas.map(m => `<li><div><b>${esc(m.meta)}</b>${m.obs ? `<small>${esc(m.obs)}</small>` : ''}</div><span class="status ${statusCls(m.status)}">${esc(m.status)}</span></li>`).join('') || '<li class="mudo">Cadastre metas na aba Metas.</li>'}</ul>
-        </div>
+      <section class="secao">
         <div class="card"><h3>Sala de troféus</h3>
           <p class="mudo" style="margin:6px 0 4px">Na carreira</p>
           <ul class="lista-simples">${M.titulos.map(t => `<li><div class="trofeu">${trofeuIc}<div><b>${esc(t.comp)}</b><small>${esc(t.temporada)}${t.obs ? ' · ' + esc(t.obs) : ''}</small></div></div></li>`).join('') || '<li class="mudo">Nenhum título ainda. A história está sendo escrita.</li>'}</ul>
@@ -732,7 +768,7 @@
 
   // ---------- roteador ----------
   let MODEL = null;
-  const pages = { inicio: pageInicio, episodios: pageEpisodios, jogos: pageJogos, jogadores: pageJogadores, transferencias: pageTransferencias, recordes: pageRecordes };
+  const pages = { inicio: pageInicio, episodios: pageEpisodios, metas: pageMetas, jogos: pageJogos, jogadores: pageJogadores, transferencias: pageTransferencias, recordes: pageRecordes };
   let lastPage = null;
 
   function render() {
@@ -767,7 +803,7 @@
     document.title = nome;
     document.getElementById('nome-portal').textContent = nome;
     document.getElementById('rodape-portal').textContent = nome;
-    document.getElementById('sub-portal').textContent = `${M.clube} · Modo Carreira FC27`;
+    document.getElementById('sub-portal').textContent = `${M.clube} · Modo Carreira Realista · FC 27`;
     if (M.cfg.canal) document.getElementById('rodape-canal').textContent = M.cfg.canal;
     if (M.cfg.linkcanal) document.getElementById('rodape-canal').href = M.cfg.linkcanal;
     // Escudo do topo: o da aba Clube; senão o encontrado pela automação; senão a inicial.
@@ -788,12 +824,12 @@
       const bust = `?v=${Date.now()}`;
       // Arquivos de apoio são opcionais: sem eles, o site usa só a planilha.
       const optional = url => fetch(url + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
-      const extrasReq = Promise.all([VIDEOS_URL, FOTOS_URL, CLUBES_URL, TREINADOR_URL, FOTOS_CORPO_URL].map(optional));
+      const extrasReq = Promise.all([VIDEOS_URL, FOTOS_URL, CLUBES_URL, TREINADOR_URL, FOTOS_CORPO_URL, TEMPORADAS_URL].map(optional));
       const res = await fetch(DATA_URL + bust, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Não foi possível baixar ${DATA_URL} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-      const [videos, fotos, clubesJson, treinador, fotosCorpo] = await extrasReq;
-      MODEL = build(wb, { videos, fotos, clubesJson, treinador, fotosCorpo });
+      const [videos, fotos, clubesJson, treinador, fotosCorpo, temporadas] = await extrasReq;
+      MODEL = build(wb, { videos, fotos, clubesJson, treinador, fotosCorpo, temporadas });
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();
