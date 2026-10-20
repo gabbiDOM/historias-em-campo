@@ -410,7 +410,7 @@
     const intro = isIntro(e);
     const pad = pad2(e.n);
     const thumb = id
-      ? `<a class="ep-thumb" href="${esc(e.link)}" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Miniatura ${intro ? 'da intro' : `do episódio ${e.n}`}" loading="lazy"><span class="play">▶ Assistir</span></a>`
+      ? `<a class="ep-thumb" href="${esc(e.link)}" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/${id}/maxresdefault.jpg" alt="Miniatura ${intro ? 'da intro' : `do episódio ${e.n}`}" loading="lazy" onload="if(this.naturalWidth<200)this.src='https://i.ytimg.com/vi/${id}/mqdefault.jpg'" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${id}/mqdefault.jpg'"><span class="play">▶ Assistir</span></a>`
       : `<div class="ep-thumb"><span class="ep-num">${intro ? 'INTRO' : `EP ${pad}`}</span>${e.link ? '' : '<span class="play">Vídeo em breve</span>'}</div>`;
     const games = M.games.filter(g => g.ep === e.n);
     const me = clubRow(M, e.n);
