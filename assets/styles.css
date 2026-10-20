@@ -218,7 +218,14 @@ select {
 .tag.ok { background: var(--win); color: #fff; }
 td .tag { font-size: 10px; padding: 2px 6px; margin-left: 4px; vertical-align: 1px; }
 .tag.base { background: color-mix(in srgb, var(--primary) 18%, transparent); color: var(--text); }
-tr.saiu td { opacity: .6; }
+.tag.emprestado { background: color-mix(in srgb, var(--zone-playoff) 28%, transparent); color: var(--text); }
+tr.fora td { opacity: .65; }
+.jogador { display: inline-flex; align-items: center; gap: 10px; }
+.avatar {
+  position: relative; width: 34px; height: 34px; border-radius: 50%; flex: none; overflow: hidden;
+  display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font: 700 12px Inter, sans-serif;
+}
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; background: var(--surface-2); }
 .rec-numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .rec-numeros small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .rec-numeros strong { display: block; font: 700 38px/1.05 "Barlow Condensed", sans-serif; }

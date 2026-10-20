@@ -4,6 +4,7 @@
 
   const DATA_URL = 'dados/dados.xlsx';
   const VIDEOS_URL = 'dados/videos.json'; // gerado pela automação do GitHub a partir do feed do canal
+  const FOTOS_URL = 'dados/fotos.json'; // miniaturas da EA por nome; a coluna Foto do Elenco tem prioridade
   const $app = document.getElementById('app');
   const $avisos = document.getElementById('avisos');
 
@@ -81,7 +82,7 @@
   }
 
   // ---------- modelo ----------
-  function build(wb, videos) {
+  function build(wb, videos, fotos) {
     const cfg = {};
     sheet(wb, 'Clube').forEach(r => { if (r.chave) cfg[norm(r.chave)] = r.valor; });
 
@@ -141,12 +142,21 @@
       if (n >= 1000) { warnings.push(`Elenco: ${jogador} tem uma data em ${coluna}. Use só o número do episódio (ex.: 3).`); return null; }
       return n;
     };
+    // Situacao: "Emprestado" ou saída ("Vendido", "Saiu", "Dispensado"...). Saida preenchida sem situação = saiu.
+    const situacao = r => {
+      const n = norm(r.situacao), label = String(r.situacao || '').trim();
+      if (n.startsWith('empre')) return { situacao: 'emprestado', situacaoLabel: label };
+      if (/^(vend|saiu|transf|dispens|liber|aposent|rescin)/.test(n) || (!n && num(r.saida) != null)) return { situacao: 'saiu', situacaoLabel: label || 'Saiu' };
+      return { situacao: '', situacaoLabel: '' };
+    };
+    const fotosMap = new Map(Object.entries(fotos || {}).map(([k, v]) => [norm(k), String(v)]));
     // Origem: "Base" (cria da base), "Contratação" (reforço) ou vazio/"Elenco inicial".
     const origemTipo = v => { const n = norm(v); return n.startsWith('base') ? 'base' : /^(contrat|reforc|emprest)/.test(n) ? 'reforco' : ''; };
     sheet(wb, 'Elenco').forEach(r => {
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
-        origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida')
+        origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida'),
+        ...situacao(r), foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
       });
     });
 
@@ -161,7 +171,7 @@
     const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
 
     return {
-      cfg, clube, liga, episodes, games, tables, tableEps, elenco, recordes, metas, titulos, seasons, temporadaAtual, warnings,
+      cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, recordes, metas, titulos, seasons, temporadaAtual, warnings,
       // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
       totalTimes: num(cfg.totaltimes) ?? 18,
       zonas: {
@@ -178,7 +188,7 @@
     const m = new Map();
     const get = name => {
       const k = norm(name);
-      if (!m.has(k)) m.set(k, { ...(M.elenco.get(k) || { nome: name, pos: '', nac: '', origem: '' }), g: 0, a: 0 });
+      if (!m.has(k)) m.set(k, { ...(M.elenco.get(k) || { nome: name, pos: '', nac: '', origem: '', situacao: '', foto: M.fotosMap.get(k) || '' }), g: 0, a: 0 });
       return m.get(k);
     };
     games.forEach(g => g.gols.forEach(x => {
@@ -433,11 +443,20 @@
     const tags = [];
     if (p.origem === 'base') tags.push(`<span class="tag base"${p.chegada != null ? ` title="Subiu no EP ${p.chegada}"` : ''}>Base</span>`);
     if (p.origem === 'reforco') tags.push(`<span class="tag"${p.chegada != null ? ` title="Chegou no EP ${p.chegada}"` : ''}>Reforço</span>`);
-    if (p.saida != null) tags.push(`<span class="tag">Saiu no EP ${p.saida}</span>`);
+    if (p.situacao === 'emprestado') tags.push(`<span class="tag emprestado">${esc(p.situacaoLabel || 'Emprestado')}${p.saida != null ? ` · EP ${p.saida}` : ''}</span>`);
+    if (p.situacao === 'saiu') tags.push(`<span class="tag">${esc(p.situacaoLabel)}${p.saida != null ? ` no EP ${p.saida}` : ''}</span>`);
     return tags.length ? ` ${tags.join(' ')}` : '';
   }
 
-  const ui = { sort: 'g', dir: -1, temporada: null };
+  // Foto da EA quando existe; sem foto (ou se a imagem falhar) ficam as iniciais.
+  function avatar(p) {
+    const ini = p.nome.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    const img = p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    return `<span class="avatar" aria-hidden="true">${esc(ini)}${img}</span>`;
+  }
+
+  const MOSTRAR = { todos: ['Todos', () => true], atual: ['Elenco atual', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'], sairam: ['Saíram', p => p.situacao === 'saiu'] };
+  const ui = { sort: 'g', dir: -1, temporada: null, mostrar: 'todos' };
   function pageJogadores(M) {
     if (ui.temporada == null) ui.temporada = M.temporadaAtual || 'todas';
     const games = ui.temporada === 'todas' ? M.games : M.games.filter(g => g.temporada === ui.temporada);
@@ -452,6 +471,7 @@
     const th = (k, label, cls = '') => `<th data-sort="${k}" class="${cls} ${ui.sort === k ? 'ordenado' : ''}">${label}${ui.sort === k ? (ui.dir < 0 ? ' ▾' : ' ▴') : ''}</th>`;
     return `<div class="secao-topo"><h2>Jogadores</h2>
         <label>Temporada <select id="sel-temp"><option value="todas" ${ui.temporada === 'todas' ? 'selected' : ''}>Todas</option>${M.seasons.map(s => `<option ${s === ui.temporada ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+        <label>Mostrar <select id="sel-mostrar">${Object.entries(MOSTRAR).map(([k, [label]]) => `<option value="${k}" ${k === ui.mostrar ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
       </div>
       <div class="grid grid-4" style="margin-bottom:16px">
         <div class="card stat"><small>Artilheiro</small><strong>${tg ? tg.g : 0}</strong><span>${tg ? esc(tg.nome) : '—'}</span></div>
@@ -461,7 +481,7 @@
       </div>
       <div class="tabela-wrap"><table>
         <thead><tr>${th('nome', 'Jogador', 'esq')}<th>Pos</th><th class="esq">País</th>${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
-        <tbody>${list.map(p => `<tr class="${p.saida != null ? 'saiu' : ''}"><td class="esq">${esc(p.nome)}${playerTags(p)}</td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
+        <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>`;
   }
 
@@ -502,6 +522,7 @@
   $app.addEventListener('change', ev => {
     if (ev.target.id === 'sel-ep') location.hash = `#tabela/${ev.target.value}`;
     if (ev.target.id === 'sel-temp') { ui.temporada = ev.target.value; render(); }
+    if (ev.target.id === 'sel-mostrar') { ui.mostrar = ev.target.value; render(); }
   });
   $app.addEventListener('click', ev => {
     const th = ev.target.closest('th[data-sort]');
@@ -538,11 +559,12 @@
       if (typeof XLSX === 'undefined') throw new Error('A biblioteca de leitura de planilhas não carregou. Verifique a conexão.');
       const bust = `?v=${Date.now()}`;
       // Os vídeos são opcionais: sem o arquivo, o site usa só a planilha.
-      const videosReq = fetch(VIDEOS_URL + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+      const optional = url => fetch(url + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+      const videosReq = optional(VIDEOS_URL), fotosReq = optional(FOTOS_URL);
       const res = await fetch(DATA_URL + bust, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Não foi possível baixar ${DATA_URL} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-      MODEL = build(wb, await videosReq);
+      MODEL = build(wb, await videosReq, await fotosReq);
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();
