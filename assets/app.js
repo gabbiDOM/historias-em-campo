@@ -481,6 +481,59 @@
     </div>`;
   }
 
+  // ---------- agenda de lançamentos ----------
+  const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const NO_AR_MS = 60 * 60 * 1000; // por 1 hora depois do horário mostra "no ar"
+
+  // Próximo lançamento em ms (UTC), a partir de dias da semana + hora no fuso do canal.
+  function proximoLancamento(cfg, agora = Date.now()) {
+    const dias = (cfg.dias || []).map(d => DIAS.findIndex(x => norm(x) === norm(d))).filter(i => i >= 0);
+    if (!dias.length) return null;
+    const [h, min] = String(cfg.hora || '18:00').split(':').map(Number);
+    const off = (cfg.utc ?? -3) * 3600000;
+    const local = new Date(agora + off); // "relógio" do canal lido via getUTC*
+    for (let add = 0; add <= 7; add++) {
+      const d = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + add, h, min || 0));
+      const alvo = d.getTime() - off;
+      if (dias.includes(d.getUTCDay()) && alvo + NO_AR_MS > agora) return alvo;
+    }
+    return null;
+  }
+
+  function agendaBox(M) {
+    const cfg = M.temporadaInfo.lancamentos;
+    if (!cfg) return '';
+    const nomes = (cfg.dias || []).join(' e ');
+    const hora = String(cfg.hora || '18:00').replace(/:00$/, 'h').replace(':', 'h');
+    const publicados = M.episodes.filter(e => !isIntro(e) && ytId(e.link));
+    const prox = (publicados.length ? publicados[publicados.length - 1].n : 0) + 1;
+    return `<div class="hero-agenda">
+      <span class="agenda-texto"><span class="ponto-vivo"></span><span>Episódios novos toda <b>${esc(nomes)}</b>, às <b>${esc(hora)}</b></span></span>
+      <div class="contagem" data-contagem aria-live="off"><span class="contagem-rotulo">EP ${pad2(prox)} em</span>
+        <span><b data-u="d">–</b><small>d</small></span><span><b data-u="h">–</b><small>h</small></span><span><b data-u="m">–</b><small>min</small></span><span><b data-u="s">–</b><small>s</small></span>
+      </div>
+    </div>`;
+  }
+
+  let contagemTimer = null;
+  function startCountdown() {
+    clearInterval(contagemTimer);
+    const box = $app.querySelector('[data-contagem]');
+    const cfg = MODEL && MODEL.temporadaInfo.lancamentos;
+    if (!box || !cfg) return;
+    const tick = () => {
+      if (!box.isConnected) return clearInterval(contagemTimer);
+      const alvo = proximoLancamento(cfg), agora = Date.now();
+      if (alvo == null) return;
+      if (alvo <= agora) { box.classList.add('no-ar'); box.innerHTML = '<span class="contagem-rotulo">Episódio novo no ar!</span>'; return; }
+      let s = Math.floor((alvo - agora) / 1000);
+      const v = { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
+      box.querySelectorAll('[data-u]').forEach(el => { el.textContent = el.dataset.u === 'd' ? v.d : pad2(v[el.dataset.u]); });
+    };
+    tick();
+    contagemTimer = setInterval(tick, 1000);
+  }
+
   // Fotos do treinador alternando a cada 10 segundos (o timer é refeito a cada render).
   let slideTimer = null;
   function startSlides() {
@@ -563,6 +616,7 @@
           <h1 class="hero-logo">${titulo}</h1>
           ${temp.chamada ? `<p class="hero-chamada">${esc(temp.chamada)}</p>` : ''}
           <p class="hero-meta">${esc(M.clube)} · ${M.liga ? esc(M.liga) + ' · ' : ''}${esc(M.temporadaAtual)}</p>
+          ${agendaBox(M)}
           <div class="botoes">${link}<a class="botao secundario" href="#episodios">Ver episódios</a></div>
         </div>
         <div class="hero-arte" aria-hidden="true">${temp.imagem ? `<img src="${esc(temp.imagem)}" alt="" onerror="this.remove()">` : ''}</div>
@@ -781,6 +835,7 @@
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('ativo', a.dataset.page === page));
     $app.innerHTML = pages[page](MODEL, arg);
     startSlides();
+    startCountdown();
     if (page !== lastPage) window.scrollTo(0, 0);
     lastPage = page;
   }

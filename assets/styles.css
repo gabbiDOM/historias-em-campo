@@ -301,6 +301,19 @@ tr.fora td { opacity: .65; }
 .hero-meta { font-size: 13px; color: #5c6b61; }
 .hero-temporada .botoes { margin-top: 8px; }
 .hero-temporada .botao.secundario { background: transparent; color: #14201a; box-shadow: inset 0 0 0 1.5px rgba(20, 32, 26, .25); }
+.hero-agenda {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 6px; padding: 10px 14px;
+  border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px rgba(20, 32, 26, .1); max-width: 520px;
+}
+.agenda-texto { font-size: 14px; color: #1f2b24; display: inline-flex; align-items: center; gap: 8px; }
+.ponto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #d71920; box-shadow: 0 0 0 0 rgba(215, 25, 32, .5); animation: pulso 2s infinite; flex: none; }
+@keyframes pulso { 70% { box-shadow: 0 0 0 7px rgba(215, 25, 32, 0); } 100% { box-shadow: 0 0 0 0 rgba(215, 25, 32, 0); } }
+@media (prefers-reduced-motion: reduce) { .ponto-vivo { animation: none; } }
+.contagem { display: flex; align-items: baseline; gap: 10px; font-variant-numeric: tabular-nums; }
+.contagem-rotulo { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #5c6b61; }
+.contagem b { font: 700 24px/1 "Barlow Condensed", sans-serif; color: #1e5a2f; }
+.contagem small { font-size: 11px; color: #5c6b61; margin-left: 1px; }
+.contagem.no-ar .contagem-rotulo { color: #d71920; font-size: 13px; }
 .hero-arte { position: relative; overflow: hidden; }
 .hero-arte::before, .hero-arte::after { content: ""; position: absolute; inset: 0; }
 .hero-arte::before { background: radial-gradient(80% 70% at 70% 100%, #2f8a45 0%, transparent 70%), linear-gradient(165deg, #1e5a2f, #0d2a17); clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%); }
