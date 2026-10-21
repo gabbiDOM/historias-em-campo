@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <pattern id="grama" width="80" height="360" patternUnits="userSpaceOnUse"><rect width="40" height="360" fill="#1f6a35"/><rect x="40" width="40" height="360" fill="#1b5e2f"/></pattern>
+  </defs>
+  <rect width="640" height="360" fill="url(#grama)"/>
+  <!-- marcações do campo (ataque para a direita) -->
+  <g fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.5">
+    <rect x="20" y="20" width="600" height="320"/>
+    <path d="M320 20v320"/><circle cx="320" cy="180" r="44"/>
+    <rect x="20" y="96" width="80" height="168"/><rect x="20" y="138" width="28" height="84"/>
+    <rect x="540" y="96" width="80" height="168"/><rect x="592" y="138" width="28" height="84"/>
+  </g>
+  <!-- movimentações -->
+  <g fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round">
+    <path d="M375 180c40-10 70-40 105-46"/><path d="M200 70c60-10 110 0 150 10"/><path d="M200 290c60 10 110 0 150-10"/>
+  </g>
+  <!-- 4-3-1-2: vermelho colorado -->
+  <g fill="#c8102e" stroke="#fff" stroke-width="3">
+    <circle cx="50" cy="180" r="13"/>
+    <circle cx="140" cy="70" r="13"/><circle cx="130" cy="140" r="13"/><circle cx="130" cy="220" r="13"/><circle cx="140" cy="290" r="13"/>
+    <circle cx="240" cy="110" r="13"/><circle cx="230" cy="180" r="13"/><circle cx="240" cy="250" r="13"/>
+    <circle cx="350" cy="180" r="15" fill="#e2b84c"/>
+    <circle cx="460" cy="140" r="13"/><circle cx="460" cy="220" r="13"/>
+  </g>
+  <text x="350" y="186" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="13" fill="#3a2a05">10</text>
+  <rect x="462" y="28" width="150" height="46" rx="8" fill="#0b1d12" fill-opacity=".75"/>
+  <text x="537" y="61" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="28" fill="#fff">4-3-1-2</text>
+</svg>

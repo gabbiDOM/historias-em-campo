@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#123a2a"/><stop offset="1" stop-color="#06140d"/></linearGradient>
+    <pattern id="grade" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0v32" fill="none" stroke="#8ee53f" stroke-opacity=".08"/></pattern>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <rect width="640" height="360" fill="url(#grade)"/>
+  <!-- América do Sul simplificada -->
+  <path d="M300 34l58 6 52 26 58 38 18 34-22 50-34 30-30 20-24 30-14 28-16 34-14 20-6-22 6-40-8-44-10-46-14-40-20-36-6-30 8-24z"
+        fill="#1f5f31" stroke="#8ee53f" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- alvos: Brasil, Argentina, Uruguai, Colômbia, Chile -->
+  <g fill="#8ee53f">
+    <circle cx="400" cy="140" r="7"/><circle cx="350" cy="262" r="7"/><circle cx="380" cy="246" r="6"/><circle cx="296" cy="70" r="6"/><circle cx="312" cy="250" r="6"/>
+  </g>
+  <g fill="none" stroke="#8ee53f" stroke-opacity=".5"><circle cx="400" cy="140" r="16"/><circle cx="350" cy="262" r="16"/></g>
+  <!-- lupa do scout -->
+  <g transform="translate(470 230)">
+    <circle r="52" fill="#8ee53f" fill-opacity=".08" stroke="#fff" stroke-width="7"/>
+    <path d="M38 38l48 48" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
+    <path d="M-30 0h60M0-30v60" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
+  </g>
+  <text x="44" y="310" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="64" fill="#fff" opacity=".9">5+</text>
+  <text x="46" y="334" font-family="Arial, sans-serif" font-weight="700" font-size="13" fill="#8ee53f" letter-spacing="2">SUL-AMERICANOS</text>
+</svg>

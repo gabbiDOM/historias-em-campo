@@ -358,11 +358,14 @@ tr.fora td { opacity: .65; }
   background: linear-gradient(135deg, var(--secondary), var(--primary));
 }
 .meta-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.meta-img .status { position: absolute; top: 12px; right: 12px; }
+.meta-corpo .status { justify-self: start; }
 .meta-corpo { padding: 16px 18px 18px; display: grid; gap: 8px; }
 .meta-corpo h3 { font-size: 22px; }
 .meta-corpo p { margin: 0; color: var(--muted); font-size: 14px; }
 .meta-concluida { border-color: var(--win); }
+.meta-lista { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 3px; }
+.status.regra { background: #0b1d12; box-shadow: inset 0 0 0 1px rgba(142, 229, 63, .6); color: #8ee53f; }
+.meta-regra { border-color: rgba(142, 229, 63, .25); }
 .meta-falhou .meta-img { filter: grayscale(.7); }
 
 /* último episódio (Início): mesmo card, com fundo de destaque; tokens redefinidos só aqui dentro */
@@ -378,6 +381,39 @@ tr.fora td { opacity: .65; }
 .ep-destaque .ep::before { content: "NOVO"; position: absolute; top: 14px; right: -34px; transform: rotate(35deg); background: #d71920; color: #fff; font: 700 12px Inter, sans-serif; letter-spacing: .1em; padding: 4px 40px; }
 .ep-destaque .ep-cabecalho small { color: #8ee53f; }
 .ep-destaque .ep-thumb { box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+
+/* recordes: arquivo histórico em papel envelhecido, tinta sépia e carimbos */
+.pagina-historia { --serif: "Libre Baskerville", Georgia, serif; }
+.historia-topo { text-align: center; margin-bottom: 22px; }
+.historia-topo small { font: italic 14px var(--serif); color: #c9ae7c; letter-spacing: .04em; }
+.historia-topo h2 { font: 700 clamp(30px, 5vw, 44px)/1.15 var(--serif); color: #f1e4c5; margin: 4px 0 8px; letter-spacing: 0; }
+.historia-topo p { margin: 0 auto; max-width: 52ch; color: #bfae8c; font: italic 15px/1.5 var(--serif); }
+.historia-topo::after { content: "❦"; display: block; margin-top: 10px; color: #b8935a; font-size: 22px; }
+.pagina-historia .card {
+  --text: #3b2a17; --muted: #7a6244; --line: rgba(90, 60, 25, .22); --surface-2: rgba(90, 60, 25, .14);
+  color: var(--text); border: 1px solid #a88a58; border-radius: 4px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .24 0 0 0 0 .1 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(120% 120% at 50% 40%, transparent 55%, rgba(120, 80, 30, .28) 100%),
+    #eee1bf;
+  box-shadow: inset 0 0 0 5px #eee1bf, inset 0 0 0 6px rgba(120, 85, 40, .45), 0 10px 26px rgba(0, 0, 0, .4);
+}
+.pagina-historia .recorde h3, .pagina-historia .card h3 { font: 700 19px/1.3 var(--serif); letter-spacing: 0; }
+.pagina-historia .rec-numeros small { font: italic 12px var(--serif); text-transform: none; letter-spacing: 0; }
+.pagina-historia .rec-numeros strong { font: 700 38px/1.1 var(--serif); color: #5a3b16; }
+.pagina-historia .rec-numeros span, .pagina-historia .rec-status { font-family: var(--serif); }
+.pagina-historia .barra { background: rgba(90, 60, 25, .18); height: 8px; }
+.pagina-historia .barra span { background: linear-gradient(90deg, #8a5a1c, #c79a45); }
+/* carimbos */
+.pagina-historia .tag {
+  background: transparent; color: #9b2d20; border: 2px solid #9b2d20; border-radius: 3px; transform: rotate(-6deg);
+  font: 700 10px var(--serif); letter-spacing: .12em; opacity: .85;
+}
+.pagina-historia .tag.ok { color: #2f6b2a; border-color: #2f6b2a; }
+.pagina-historia .recorde.quebrado { border-color: #2f6b2a; }
+.pagina-historia .recorde.quebrado .rec-status { color: #2f6b2a; }
+.pagina-historia .trofeu-ic { background: rgba(90, 60, 25, .12); color: #8a5a1c; }
+.pagina-historia .lista-simples b { font-family: var(--serif); }
 
 /* nacionalidades */
 .nacionalidades { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }

@@ -244,9 +244,11 @@
       detentor: String(r.detentor || ''), quando: String(r.quando || ''), obs: String(r.observacao || ''), confirmado: sim(r.confirmado)
     }));
     // Metas: Imagem (arquivo em assets/metas/ ou link), Atual/Alvo para a barra de progresso e Temporada opcionais.
+    // Tipo "Regra" = regra da carreira (sem status). Chave liga contagens automáticas (ex.: sulamericanos).
     const metas = sheet(wb, 'Metas').map(r => ({
       meta: String(r.meta || ''), status: String(r.status || 'Em andamento'), obs: String(r.observacao || ''),
-      imagem: String(r.imagem || ''), atual: num(r.atual), alvo: num(r.alvo), temporada: season(r.temporada)
+      imagem: String(r.imagem || ''), atual: num(r.atual), alvo: num(r.alvo), temporada: season(r.temporada),
+      regra: norm(r.tipo).startsWith('regra'), chave: norm(r.chave)
     })).filter(m => m.meta);
     const titulos = sheet(wb, 'Titulos').map(r => ({ temporada: season(r.temporada), comp: String(r.competicao || ''), obs: String(r.observacao || '') })).filter(t => t.comp);
 
@@ -799,35 +801,58 @@
   const statusCls = s => { const n = norm(s); return n.startsWith('conclu') ? 'concluida' : n.startsWith('falh') ? 'falhou' : 'andamento'; };
   const ALVO_IC = '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>';
 
-  function metaCard(m) {
+  const SUL_AMERICA = ['argentina', 'bolivia', 'brasil', 'chile', 'colombia', 'equador', 'paraguai', 'peru', 'uruguai', 'venezuela'];
+  // Contagens automáticas pela coluna Chave da aba Metas.
+  function metaAtual(M, m) {
+    if (m.chave === 'sulamericanos') return [...M.elenco.values()].filter(p => p.doElenco && !p.situacao && SUL_AMERICA.includes(norm(p.nac))).length;
+    return m.atual;
+  }
+
+  function metaCard(M, m) {
     const src = !m.imagem ? '' : /^(https?:)?\/\/|\//.test(m.imagem) ? m.imagem : `assets/metas/${m.imagem}`;
-    const cls = statusCls(m.status);
-    const pct = m.alvo ? Math.min(100, Math.round((m.atual || 0) / m.alvo * 100)) : null;
+    const atual = metaAtual(M, m);
+    const batida = m.alvo != null && atual != null && atual >= m.alvo;
+    const status = batida && !m.regra ? 'Concluída' : m.status;
+    const cls = m.regra ? 'regra' : statusCls(status);
+    const pct = m.alvo ? Math.min(100, Math.round((atual || 0) / m.alvo * 100)) : null;
+    // Observação com ";" ou quebra de linha vira lista (ex.: faixas da regra de transferências).
+    const itens = m.obs.split(/\s*;\s*|\n/).map(s => s.trim()).filter(Boolean);
+    const texto = itens.length > 1 ? `<ul class="meta-lista">${itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : itens.length ? `<p>${esc(itens[0])}</p>` : '';
     return `<article class="card meta meta-${cls}">
-      <div class="meta-img">${ALVO_IC}${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="status ${cls}">${esc(m.status)}</span></div>
+      <div class="meta-img">${ALVO_IC}${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
       <div class="meta-corpo">
+        <span class="status ${cls}">${m.regra ? 'Regra da carreira' : esc(status)}</span>
         <h3>${esc(m.meta)}</h3>
-        ${m.obs ? `<p>${esc(m.obs)}</p>` : ''}
-        ${pct != null ? `<div class="barra"><span style="width:${pct}%"></span></div><small class="mudo">${m.atual ?? 0} de ${m.alvo}</small>` : ''}
+        ${texto}
+        ${pct != null ? `<div class="barra"><span style="width:${pct}%"></span></div><small class="mudo">${atual ?? 0} de ${m.alvo}${m.chave ? ' · contagem automática do elenco' : ''}</small>` : ''}
       </div>
     </article>`;
   }
 
   function pageMetas(M) {
     // Metas sem temporada valem para a temporada atual.
-    const metas = M.metas.filter(m => !m.temporada || m.temporada === M.temporadaAtual);
-    const conta = c => metas.filter(m => statusCls(m.status) === c).length;
+    const todas = M.metas.filter(m => !m.temporada || m.temporada === M.temporadaAtual);
+    const metas = todas.filter(m => !m.regra), regras = todas.filter(m => m.regra);
+    const statusDe = m => { const a = metaAtual(M, m); return m.alvo != null && a != null && a >= m.alvo ? 'concluida' : statusCls(m.status); };
+    const conta = c => metas.filter(m => statusDe(m) === c).length;
     const nome = M.temporadaInfo.nome ? `${esc(M.temporadaInfo.nome)} · ` : '';
     return `<div class="secao-topo"><div><h2>Metas da temporada</h2><span class="mudo">${nome}${esc(M.temporadaAtual)}</span></div>
         <span class="mudo">${conta('concluida')} concluídas · ${conta('andamento')} em andamento · ${conta('falhou')} não alcançadas</span></div>
-      ${metas.length ? `<div class="grid grid-3">${metas.map(metaCard).join('')}</div>` : '<p class="estado">Cadastre as metas na aba Metas da planilha.</p>'}`;
+      ${metas.length ? `<div class="grid grid-3">${metas.map(m => metaCard(M, m)).join('')}</div>` : '<p class="estado">Cadastre as metas na aba Metas da planilha.</p>'}
+      ${regras.length ? `<section class="secao"><div class="secao-topo"><h2>Regras da carreira</h2><span class="mudo">O que vale em toda a série</span></div>
+        <div class="grid grid-3">${regras.map(m => metaCard(M, m)).join('')}</div></section>` : ''}`;
   }
 
   function pageRecordes(M) {
     const car = careerRecords(M);
     const reais = M.recordes.find(r => r.chave === 'titulos');
     const trofeuIc = '<span class="trofeu-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3zm0 4H6v1a2 2 0 0 0 1 1.7V7zm10 0v2.7A2 2 0 0 0 18 8V7h-1z"/></svg></span>';
-    return `<div class="secao-topo"><h2>Recordes históricos</h2><span class="mudo">Recordes reais do clube até o início da série vs. a carreira</span></div>
+    return `<div class="pagina-historia">
+      <header class="historia-topo">
+        <small>Arquivo do clube · desde 1945</small>
+        <h2>Recordes históricos</h2>
+        <p>Os marcos reais do VfL Wolfsburg até o início da série, frente ao que a carreira já escreveu.</p>
+      </header>
       <div class="grid grid-3">${M.recordes.map(r => recordCard(M, r, car)).join('')}</div>
 
       <section class="secao">
@@ -836,7 +861,8 @@
           <ul class="lista-simples">${M.titulos.map(t => `<li><div class="trofeu">${trofeuIc}<div><b>${esc(t.comp)}</b><small>${esc(t.temporada)}${t.obs ? ' · ' + esc(t.obs) : ''}</small></div></div></li>`).join('') || '<li class="mudo">Nenhum título ainda. A história está sendo escrita.</li>'}</ul>
           ${reais && reais.obs ? `<p class="mudo" style="margin:14px 0 4px">História real do clube</p><ul class="lista-simples">${reais.obs.split(/·|;|\n/).map(s => s.trim()).filter(Boolean).map(s => `<li><div class="trofeu">${trofeuIc}<b>${esc(s)}</b></div></li>`).join('')}</ul>` : ''}
         </div>
-      </section>`;
+      </section>
+    </div>`;
   }
 
   // ---------- roteador ----------

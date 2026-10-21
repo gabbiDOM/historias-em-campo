@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#173a24"/><stop offset="1" stop-color="#0a1a10"/></linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <text x="600" y="150" text-anchor="end" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="190" fill="#fff" opacity=".05">€</text>
+  <!-- vendas (verde) x gasto máximo (dourado): 10→5, 20→8, 30→12, 40→15, 50→20, 60→25 (escala 3,6 px por milhão) -->
+  <g transform="translate(70 300)">
+    <path d="M0 0h520" stroke="#fff" stroke-opacity=".3" stroke-width="2"/>
+    <g fill="#8ee53f">
+      <rect x="10" y="-36" width="26" height="36" rx="3"/><rect x="95" y="-72" width="26" height="72" rx="3"/><rect x="180" y="-108" width="26" height="108" rx="3"/>
+      <rect x="265" y="-144" width="26" height="144" rx="3"/><rect x="350" y="-180" width="26" height="180" rx="3"/><rect x="435" y="-216" width="26" height="216" rx="3"/>
+    </g>
+    <g fill="#e2b84c">
+      <rect x="40" y="-18" width="26" height="18" rx="3"/><rect x="125" y="-28.8" width="26" height="28.8" rx="3"/><rect x="210" y="-43.2" width="26" height="43.2" rx="3"/>
+      <rect x="295" y="-54" width="26" height="54" rx="3"/><rect x="380" y="-72" width="26" height="72" rx="3"/><rect x="465" y="-90" width="26" height="90" rx="3"/>
+    </g>
+    <g font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#fff" text-anchor="middle" opacity=".85">
+      <text x="38" y="22">10</text><text x="123" y="22">20</text><text x="208" y="22">30</text><text x="293" y="22">40</text><text x="378" y="22">50</text><text x="463" y="22">60</text>
+    </g>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1">
+    <rect x="70" y="34" width="14" height="14" rx="3" fill="#8ee53f"/><text x="92" y="46" fill="#fff">VENDAS (€ mi)</text>
+    <rect x="220" y="34" width="14" height="14" rx="3" fill="#e2b84c"/><text x="242" y="46" fill="#fff">GASTO MÁXIMO</text>
+  </g>
+</svg>

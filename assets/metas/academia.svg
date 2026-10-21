@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <clipPath id="esq"><polygon points="0,0 360,0 280,360 0,360"/></clipPath>
+    <clipPath id="dir"><polygon points="360,0 640,0 640,360 280,360"/></clipPath>
+    <linearGradient id="escuro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient>
+  </defs>
+  <!-- Alemanha -->
+  <g clip-path="url(#esq)"><rect width="640" height="120" fill="#1a1a1a"/><rect y="120" width="640" height="120" fill="#c8102e"/><rect y="240" width="640" height="120" fill="#e0b324"/></g>
+  <!-- Argentina -->
+  <g clip-path="url(#dir)"><rect width="640" height="120" fill="#74acdf"/><rect y="120" width="640" height="120" fill="#f4f8fc"/><rect y="240" width="640" height="120" fill="#74acdf"/>
+    <circle cx="500" cy="180" r="18" fill="#f6c343"/></g>
+  <rect width="640" height="360" fill="url(#escuro)"/>
+  <!-- escudo da academia: bola + broto -->
+  <path d="M320 70l90 30v70c0 64-44 104-90 124-46-20-90-60-90-124v-70z" fill="#1f5f31" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="320" cy="220" r="34" fill="#fff"/>
+  <path d="M320 186l14 10-5 17h-18l-5-17zM296 210l10 4 2 16-10 8-8-10zM344 210l-10 4-2 16 10 8 8-10z" fill="#1a1a1a"/>
+  <path d="M320 186v-50" stroke="#8ee53f" stroke-width="6" stroke-linecap="round"/>
+  <path d="M320 150c-26-2-40-18-40-34 22-2 40 12 40 34zM320 136c22-4 36-20 36-36-20 0-36 14-36 36z" fill="#8ee53f"/>
+  <text x="320" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#fff" letter-spacing="4">ALEMANHA · ARGENTINA</text>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2233"/><stop offset="1" stop-color="#090c14"/></linearGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe9a6"/><stop offset="1" stop-color="#b8892b"/></linearGradient>
+    <linearGradient id="prata" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f4f8"/><stop offset="1" stop-color="#9aa4b2"/></linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="320" cy="150" r="150" fill="#8ee53f" opacity=".06"/>
+  <!-- pódio 1º e 2º -->
+  <rect x="220" y="230" width="100" height="130" fill="url(#ouro)"/>
+  <rect x="320" y="262" width="100" height="98" fill="url(#prata)"/>
+  <g font-family="Arial Black, Arial, sans-serif" font-weight="900" text-anchor="middle">
+    <text x="270" y="300" font-size="44" fill="#5a3f0c">1</text><text x="370" y="320" font-size="38" fill="#4a5262">2</text>
+  </g>
+  <!-- cadeado sobre o pódio -->
+  <g transform="translate(320 128)">
+    <path d="M-38 0v-28a38 38 0 0 1 76 0v28" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
+    <rect x="-62" y="0" width="124" height="92" rx="16" fill="#8ee53f"/>
+    <circle cy="40" r="12" fill="#0b1d12"/><rect x="-5" y="44" width="10" height="26" rx="4" fill="#0b1d12"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-weight="700" fill="#fff" letter-spacing="3" font-size="14" opacity=".85">
+    <text x="110" y="250" text-anchor="middle">VENDA</text><text x="110" y="270" text-anchor="middle">BLOQUEADA</text>
+  </g>
+  <path d="M76 300l68-68M76 232l68 68" stroke="#e5333a" stroke-width="5" stroke-linecap="round" opacity=".5"/>
+  <text x="530" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" fill="#fff" letter-spacing="3" font-size="14" opacity=".85">BUNDESLIGA</text>
+</svg>

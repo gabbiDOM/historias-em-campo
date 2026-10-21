@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f5f31"/><stop offset="1" stop-color="#0a1f12"/></linearGradient>
+    <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbe9a6"/><stop offset=".5" stop-color="#e2b84c"/><stop offset="1" stop-color="#a87a22"/></linearGradient>
+    <radialGradient id="luz" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#8ee53f" stop-opacity=".45"/><stop offset="1" stop-color="#8ee53f" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <g fill="#fff" opacity=".05">
+    <polygon points="320,200 140,0 220,0"/><polygon points="320,200 280,0 360,0"/><polygon points="320,200 420,0 500,0"/>
+    <polygon points="320,200 0,60 0,140"/><polygon points="320,200 640,60 640,140"/>
+  </g>
+  <circle cx="320" cy="190" r="170" fill="url(#luz)"/>
+  <!-- setas de acesso -->
+  <g fill="none" stroke="#8ee53f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".55">
+    <polyline points="110,250 150,210 190,250"/><polyline points="110,300 150,260 190,300"/>
+    <polyline points="450,250 490,210 530,250"/><polyline points="450,300 490,260 530,300"/>
+  </g>
+  <!-- taça -->
+  <g fill="url(#ouro)">
+    <path d="M262 84h116v44a58 58 0 0 1-116 0z"/>
+    <path d="M262 98h-26a26 26 0 0 0 26 40v-14a12 12 0 0 1-12-12h12z"/>
+    <path d="M378 98h26a26 26 0 0 1-26 40v-14a12 12 0 0 0 12-12h-12z"/>
+    <rect x="308" y="184" width="24" height="32" rx="4"/>
+    <rect x="284" y="214" width="72" height="14" rx="4"/>
+    <rect x="268" y="228" width="104" height="22" rx="5"/>
+  </g>
+  <path d="M282 96h20v40a30 30 0 0 0 12 22" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="6" stroke-linecap="round"/>
+  <text x="320" y="245" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="17" font-weight="900" fill="#5a3f0c">1º</text>
+  <g fill="#fbe9a6">
+    <path d="M320 34l6 13 14 2-10 10 2 14-12-7-12 7 2-14-10-10 14-2z"/>
+    <path d="M262 50l4 8 9 1-6 6 1 9-8-4-8 4 1-9-6-6 9-1z" opacity=".8"/>
+    <path d="M378 50l4 8 9 1-6 6 1 9-8-4-8 4 1-9-6-6 9-1z" opacity=".8"/>
+  </g>
+  <!-- confete -->
+  <g opacity=".8">
+    <rect x="80" y="70" width="10" height="5" fill="#fff" transform="rotate(30 85 72)"/>
+    <rect x="540" y="90" width="10" height="5" fill="#d71920" transform="rotate(-25 545 92)"/>
+    <rect x="200" y="40" width="9" height="5" fill="#8ee53f" transform="rotate(60 204 42)"/>
+    <rect x="450" y="40" width="9" height="5" fill="#fff" transform="rotate(-40 454 42)"/>
+    <rect x="580" y="180" width="10" height="5" fill="#8ee53f" transform="rotate(20 585 182)"/>
+    <rect x="50" y="170" width="10" height="5" fill="#d71920" transform="rotate(-50 55 172)"/>
+  </g>
+</svg>
