@@ -573,16 +573,35 @@
     if (!t || !t.nome) return '';
     const imagens = Array.isArray(t.imagens) ? t.imagens : t.imagem ? [{ src: t.imagem }] : [];
     const imgs = imagens.map((im, i) => `<img class="${i === 0 ? 'ativo' : ''}" src="${esc(im.src)}" alt="${esc(t.nome)}" style="object-position:${esc(im.posicao || 'center')}" onerror="this.remove()">`).join('');
-    return `<section class="secao card treinador">
-      <div class="treinador-foto"><span>${esc(initials(t.nome))}</span>${imgs}</div>
-      <div class="treinador-texto">
-        <small class="sobretitulo">${esc(t.cargo || 'O treinador')}</small>
-        <h2>${esc(t.nome)}</h2>
-        ${(t.paragrafos || []).map(p => `<p>${esc(p)}</p>`).join('')}
-        ${(t.marcos || []).length ? `<ol class="linha-tempo">${t.marcos.map(m => `<li><b>${esc(m.ano)}</b><span>${esc(m.texto)}</span></li>`).join('')}</ol>` : ''}
+    const marcos = (t.marcos || []).map(m => {
+      const titulo = m.titulo || m.texto, sub = m.titulo ? m.texto : '';
+      return `<li class="lt-item lt-${esc(m.tipo || 'clube')}${m.destaque ? ' lt-destaque' : ''}">
+        <span class="lt-ano">${esc(m.ano)}</span>
+        <span class="lt-ponto" aria-hidden="true">${LT_ICONES[m.tipo] || LT_ICONES.clube}</span>
+        <b>${esc(titulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}
+      </li>`;
+    }).join('');
+    return `<section class="secao treinador-bloco">
+      <span class="treinador-marca" aria-hidden="true">10</span>
+      <div class="treinador">
+        <div class="treinador-foto"><span>${esc(initials(t.nome))}</span>${imgs}</div>
+        <div class="treinador-texto">
+          <small class="sobretitulo">${esc(t.cargo || 'O treinador')}</small>
+          <h2>${esc(t.nome)}</h2>
+          ${(t.paragrafos || []).map((p, i) => `<p class="${i === 0 ? 'treinador-lead' : ''}">${esc(p)}</p>`).join('')}
+        </div>
       </div>
+      ${marcos ? `<div class="lt-bloco"><small class="sobretitulo">Trajetória</small><ol class="lt">${marcos}</ol></div>` : ''}
     </section>`;
   }
+
+  // Ícones da linha do tempo do treinador (24x24, cor herdada).
+  const LT_ICONES = {
+    clube: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>',
+    selecao: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.5 7-6.3-3.6-6.3 3.6 1.5-7L2 9.3l7-.8z"/></svg>',
+    titulo: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3zm0 4H6v1a2 2 0 0 0 1 1.7V7zm10 0v2.7A2 2 0 0 0 18 8V7h-1z"/></svg>',
+    treinador: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10h7M8.5 14h4"/></svg>'
+  };
 
   function recordCard(M, rec, car) {
     const c = car[rec.chave];

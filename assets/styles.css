@@ -539,10 +539,45 @@ tr.fora td { opacity: .65; }
 .sobretitulo { color: var(--primary); font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; }
 .treinador-texto h2 { margin: 2px 0 10px; }
 .treinador-texto p { margin: 0 0 10px; }
-.linha-tempo { list-style: none; margin: 16px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 8px; }
-.linha-tempo li { position: relative; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; font-size: 14px; }
-.linha-tempo li::before { content: ""; position: absolute; left: -20px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
-.linha-tempo b { color: var(--primary); }
+/* bloco do treinador: celeste argentino se fundindo no verde Wolfsburg */
+.treinador-bloco {
+  --text: #eef3f8; --muted: rgba(226, 236, 246, .72);
+  position: relative; overflow: hidden; isolation: isolate; color: var(--text);
+  border-radius: var(--radius); border: 1px solid rgba(156, 199, 238, .22); padding: 24px;
+  background:
+    radial-gradient(55% 70% at 0% 0%, rgba(116, 172, 223, .32), transparent 60%),
+    radial-gradient(55% 80% at 100% 100%, rgba(101, 179, 46, .32), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(156, 199, 238, .05) 0 46px, transparent 46px 92px),
+    linear-gradient(120deg, #0c1c33 0%, #0e2430 45%, #0c2416 100%);
+}
+.treinador-marca {
+  position: absolute; right: -10px; top: -60px; z-index: -1; pointer-events: none;
+  font: 700 340px/1 "Barlow Condensed", sans-serif; color: transparent; -webkit-text-stroke: 2px rgba(156, 199, 238, .1);
+}
+.treinador-bloco .treinador { padding: 0; background: none; border: 0; }
+.treinador-bloco .sobretitulo { color: #9cc7ee; }
+.treinador-bloco .treinador-texto h2 { font-size: 40px; }
+.treinador-bloco .treinador-texto p { color: var(--muted); }
+.treinador-bloco .treinador-texto p.treinador-lead { color: var(--text); font-size: 17px; line-height: 1.55; }
+.treinador-bloco .treinador-foto { box-shadow: 0 16px 36px rgba(0, 0, 0, .45); background: linear-gradient(160deg, #16406f, #1f5f31); }
+
+/* linha do tempo: trilho horizontal com marcadores; vira vertical no celular */
+.lt-bloco { margin-top: 26px; padding-top: 20px; border-top: 1px solid rgba(156, 199, 238, .18); }
+.lt { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; position: relative; }
+.lt::before { content: ""; position: absolute; left: 4%; right: 4%; top: 41px; height: 2px; background: linear-gradient(90deg, #74acdf, #9cc7ee 40%, #65b32e); opacity: .6; }
+.lt-item { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.lt-ano { font: 700 16px/1 "Barlow Condensed", sans-serif; letter-spacing: .04em; color: #9cc7ee; height: 18px; }
+.lt-ponto {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; z-index: 1;
+  background: #0f2236; color: #9cc7ee; box-shadow: 0 0 0 2px rgba(156, 199, 238, .55), 0 0 0 6px #0e2232;
+}
+.lt-ponto svg { width: 17px; height: 17px; }
+.lt-item b { font-size: 14px; line-height: 1.25; margin-top: 4px; }
+.lt-item small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.lt-titulo .lt-ponto { color: #f6c343; box-shadow: 0 0 0 2px rgba(246, 195, 67, .6), 0 0 0 6px #0e2232; }
+.lt-destaque .lt-ano { color: #8ee53f; }
+.lt-destaque .lt-ponto { background: #65b32e; color: #0b2a10; box-shadow: 0 0 0 2px #8ee53f, 0 0 0 6px #0e2232, 0 0 18px rgba(142, 229, 63, .55); }
+.lt-destaque b { color: #b9f28c; }
 
 /* redes do canal (fim de todas as páginas) */
 .redes { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 18px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
@@ -563,6 +598,15 @@ tr.fora td { opacity: .65; }
   .marca strong { font-size: 21px; }
   .treinador { grid-template-columns: 1fr; }
   .treinador-foto { max-width: 280px; }
+  .treinador-bloco { padding: 18px; }
+  .treinador-bloco .treinador-texto h2 { font-size: 32px; }
+  .lt { grid-auto-flow: row; grid-auto-columns: auto; gap: 14px; padding-left: 4px; }
+  .lt::before { left: 21px; right: auto; top: 4px; bottom: 4px; width: 2px; height: auto; background: linear-gradient(180deg, #74acdf, #65b32e); }
+  .lt-item { display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-areas: "ponto ano" "ponto titulo" "ponto sub"; text-align: left; align-items: start; column-gap: 14px; row-gap: 2px; }
+  .lt-ponto { grid-area: ponto; }
+  .lt-ano { grid-area: ano; height: auto; }
+  .lt-item b { grid-area: titulo; margin: 0; }
+  .lt-item small { grid-area: sub; }
   .partida-placar .centro strong { font-size: 32px; }
   .escudo-clube.grande { width: 44px; height: 44px; }
   .artilheiro { grid-template-columns: minmax(0, 1fr) minmax(0, 42%); min-height: 300px; }

@@ -14,12 +14,12 @@
     "Agora a história dá a volta: D'Alessandro retorna a Wolfsburg, desta vez à beira do campo, com a missão de devolver os Lobos à Bundesliga."
   ],
   "marcos": [
-    { "ano": "2000", "texto": "Estreia profissional pelo River Plate" },
-    { "ano": "2001", "texto": "Campeão mundial sub-20 com a Argentina" },
-    { "ano": "2003–2006", "texto": "VfL Wolfsburg, primeira passagem pela Europa" },
-    { "ano": "2004", "texto": "Medalha de ouro olímpica em Atenas" },
-    { "ano": "2008", "texto": "Chega ao Internacional e vence a Copa Sul-Americana" },
-    { "ano": "2010", "texto": "Campeão da Libertadores e Rei da América" },
-    { "ano": "2026/27", "texto": "Volta a Wolfsburg como treinador" }
+    { "ano": "2000", "titulo": "Estreia no River Plate", "texto": "Revelado nas categorias de base do clube", "tipo": "clube" },
+    { "ano": "2001", "titulo": "Campeão mundial sub-20", "texto": "Com a seleção argentina", "tipo": "selecao" },
+    { "ano": "2003–06", "titulo": "VfL Wolfsburg", "texto": "Primeira passagem pela Europa", "tipo": "clube", "destaque": true },
+    { "ano": "2004", "titulo": "Ouro olímpico", "texto": "Jogos de Atenas", "tipo": "selecao" },
+    { "ano": "2008", "titulo": "Internacional", "texto": "Chega e vence a Copa Sul-Americana", "tipo": "titulo" },
+    { "ano": "2010", "titulo": "Libertadores", "texto": "Campeão e eleito Rei da América", "tipo": "titulo" },
+    { "ano": "2026/27", "titulo": "De volta a Wolfsburg", "texto": "Agora como treinador", "tipo": "treinador", "destaque": true }
   ]
 }
