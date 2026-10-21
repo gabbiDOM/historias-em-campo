@@ -716,6 +716,7 @@
     return tags.length ? ` ${tags.join(' ')}` : '';
   }
 
+  const POS_ORDEM = ['gol', 'ld', 'zag', 'le', 'ala', 'vol', 'mc', 'md', 'me', 'mei', 'pd', 'pe', 'sa', 'ata'];
   const MOSTRAR = { todos: ['Todos', () => true], atual: ['Elenco atual', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'], sairam: ['Saíram', p => p.situacao === 'saiu'] };
   const ui = { sort: 'g', dir: -1, temporada: null, mostrar: 'todos', tempTransf: null };
   function seasonSelect(id, value, M) {
@@ -729,7 +730,17 @@
     M.elenco.forEach((e, k) => { if (!st.has(k)) st.set(k, { ...e, g: 0, a: 0 }); });
     const list = [...st.values()].map(p => ({ ...p, ga: p.g + p.a }));
     const key = ui.sort, dir = ui.dir;
-    list.sort((a, b) => key === 'nome' ? dir * a.nome.localeCompare(b.nome, 'pt-BR') : dir * (a[key] - b[key]) || b.g - a.g || b.a - a.a || a.nome.localeCompare(b.nome, 'pt-BR'));
+    // Posição segue a ordem do campo (goleiro → ataque); vazios vão sempre para o fim.
+    const ordemPos = p => { const i = POS_ORDEM.indexOf(norm(p)); return i < 0 ? 99 : i; };
+    const compara = (a, b) => {
+      if (key === 'pos') return dir * (ordemPos(a.pos) - ordemPos(b.pos));
+      if (key === 'nome' || key === 'nac') {
+        if (!a[key] !== !b[key]) return a[key] ? -1 : 1;
+        return dir * String(a[key]).localeCompare(String(b[key]), 'pt-BR');
+      }
+      return dir * (a[key] - b[key]);
+    };
+    list.sort((a, b) => compara(a, b) || b.g - a.g || b.a - a.a || a.nome.localeCompare(b.nome, 'pt-BR'));
     const top = k => { const p = [...list].sort((a, b) => b[k] - a[k])[0]; return p && p[k] > 0 ? p : null; };
     const [tg, ta, tga] = [top('g'), top('a'), top('ga')];
     const base = list.filter(p => p.origem === 'base');
@@ -745,7 +756,7 @@
         ${base.length ? `<div class="card stat"><small>Crias da base</small><strong>${plural(base.length, 'jogador', 'jogadores')}</strong><span>${plural(base.reduce((s, p) => s + p.g, 0), 'gol', 'gols')} · ${plural(base.reduce((s, p) => s + p.a, 0), 'assistência', 'assistências')}</span></div>` : ''}
       </div>
       <div class="tabela-wrap"><table>
-        <thead><tr>${th('nome', 'Jogador', 'esq')}<th>Pos</th><th class="esq">País</th>${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
+        <thead><tr>${th('nome', 'Jogador', 'esq')}${th('pos', 'Pos')}${th('nac', 'País', 'esq')}${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
         <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>
       ${nationalities(M)}`;
@@ -909,7 +920,8 @@
     const th = ev.target.closest('th[data-sort]');
     if (!th) return;
     const k = th.dataset.sort;
-    if (ui.sort === k) ui.dir *= -1; else { ui.sort = k; ui.dir = k === 'nome' ? 1 : -1; }
+    // Texto e posição começam em ordem crescente; números começam do maior.
+    if (ui.sort === k) ui.dir *= -1; else { ui.sort = k; ui.dir = ['nome', 'pos', 'nac'].includes(k) ? 1 : -1; }
     render();
   });
 

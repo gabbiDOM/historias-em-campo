@@ -598,6 +598,9 @@ tr.fora td { opacity: .65; }
   .marca strong { font-size: 21px; }
   .treinador { grid-template-columns: 1fr; }
   .treinador-foto { max-width: 280px; }
+  .redes { gap: 10px; }
+  .redes-titulo { width: 100%; margin: 0; }
+  .botao-rede { flex: 1 1 0; min-width: 0; justify-content: center; padding: 11px 12px; white-space: nowrap; }
   .treinador-bloco { padding: 18px; }
   .treinador-bloco .treinador-texto h2 { font-size: 32px; }
   .lt { grid-auto-flow: row; grid-auto-columns: auto; gap: 14px; padding-left: 4px; }
