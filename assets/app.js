@@ -711,7 +711,7 @@
     const tags = [];
     if (p.origem === 'base') tags.push(`<span class="tag base"${p.chegada != null ? ` title="Subiu no EP ${p.chegada}"` : ''}>Base</span>`);
     if (p.origem === 'reforco') tags.push(`<span class="tag"${p.chegada != null ? ` title="Chegou no EP ${p.chegada}"` : ''}>Reforço</span>`);
-    if (p.situacao === 'emprestado') tags.push(`<span class="tag emprestado">${esc(p.situacaoLabel || 'Emprestado')}${p.saida != null ? ` · EP ${p.saida}` : ''}</span>`);
+    if (p.situacao === 'emprestado') tags.push(`<span class="tag emprestado"${p.saida != null ? ` title="Emprestado no EP ${p.saida}"` : ''}>Emprestado</span>`);
     if (p.situacao === 'saiu') tags.push(`<span class="tag">${esc(p.situacaoLabel)}${p.saida != null ? ` no EP ${p.saida}` : ''}</span>`);
     return tags.length ? ` ${tags.join(' ')}` : '';
   }
@@ -757,7 +757,7 @@
       </div>
       <div class="tabela-wrap"><table>
         <thead><tr>${th('nome', 'Jogador', 'esq')}${th('pos', 'Pos')}${th('nac', 'País', 'esq')}${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
-        <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
+        <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao === 'saiu' ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>
       ${nationalities(M)}`;
   }
