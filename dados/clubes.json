@@ -109,6 +109,26 @@
       "wikidata": "Q849823",
       "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Escudo_del_Club_de_F%C3%BAtbol_Tigres_UANL.svg?width=160",
       "estadio": "Estadio Universitario"
+    },
+    "Energie Cottbus": {
+      "wikidata": "Q107818",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_Energie_Cottbus.svg?width=160",
+      "estadio": "LEAG Energie Stadion"
+    },
+    "Heidenheim 1846": {
+      "wikidata": "Q162251",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_Heidenheim_1846.svg?width=160",
+      "estadio": "Voith-Arena"
+    },
+    "Holstein Kiel": {
+      "wikidata": "Q157828",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Holstein_Kiel_Logo.svg?width=160",
+      "estadio": "Holstein-Stadion"
+    },
+    "VfL Osnabrück": {
+      "wikidata": "Q160530",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfL_Osnabrueck_Logo_2021%E2%80%93.svg?width=160",
+      "estadio": "Bremer Brücke"
     }
   },
   "competicoes": {
