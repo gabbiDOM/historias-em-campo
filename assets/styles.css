@@ -515,6 +515,13 @@ tr.fora td { opacity: .65; }
 
 /* ---------- transferências ---------- */
 .filtros { display: flex; gap: 10px; flex-wrap: wrap; }
+.ordenar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ordenar small { color: var(--muted); margin-right: 2px; }
+.chip-ordem { font: 600 13px Inter, sans-serif; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.chip-ordem:hover { border-color: var(--primary); }
+.chip-ordem.ativo { background: var(--primary); border-color: var(--primary); color: #fff; }
+th[data-tsort] { cursor: pointer; user-select: none; }
+th[data-tsort].ordenado { color: var(--text); }
 .subtitulo { margin-bottom: 12px; font-size: 24px; }
 .chegada { display: flex; flex-direction: column; gap: 12px; position: relative; }
 .chegada-topo { display: flex; align-items: center; gap: 14px; }

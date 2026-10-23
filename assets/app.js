@@ -628,10 +628,15 @@
   // ---------- páginas ----------
   function pageInicio(M) {
     const season = M.games.filter(g => g.temporada === M.temporadaAtual);
-    const v = season.filter(g => g.res === 'V').length, e = season.filter(g => g.res === 'E').length, d = season.filter(g => g.res === 'D').length;
-    const gp = season.reduce((s, g) => s + g.gp, 0), gc = season.reduce((s, g) => s + g.gc, 0);
     const lastTableEp = M.tableEps[M.tableEps.length - 1];
     const me = lastTableEp != null ? clubRow(M, lastTableEp) : null;
+    // Campanha e gols da temporada seguem a classificação do jogo (inclui partidas não gravadas);
+    // sem tabela, usa os jogos registrados. Artilharia e assistências vêm sempre da aba Gols.
+    const v = me ? me.v : season.filter(g => g.res === 'V').length;
+    const e = me ? me.e : season.filter(g => g.res === 'E').length;
+    const d = me ? me.d : season.filter(g => g.res === 'D').length;
+    const gp = me ? me.gp : season.reduce((s, g) => s + g.gp, 0), gc = me ? me.gc : season.reduce((s, g) => s + g.gc, 0);
+    const jogosTemp = me ? me.j : season.length;
     const st = playerStats(M, season);
     const art = topBy(st, 'g'), gar = topBy(st, 'a');
     const forma = season.slice(-5).map(g => `<span class="res res-${g.res}" title="${esc(scoreline(M, g))}">${g.res}</span>`).join('');
@@ -666,7 +671,7 @@
       <section class="secao grid grid-4">
         <div class="card stat stat-tile"><small>Posição atual</small><strong>${me ? ordinal(me.pos) : '—'}</strong><span>${me ? `${me.pts} pts · ${esc(M.liga)}` : 'sem tabela'}</span></div>
         <div class="card stat stat-tile"><small>Campanha na temporada</small><strong>${v}V ${e}E ${d}D</strong><div class="forma" aria-label="Últimos jogos">${forma}</div></div>
-        <div class="card stat stat-tile"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(season.length, 'jogo', 'jogos')}</span></div>
+        <div class="card stat stat-tile"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(jogosTemp, 'jogo', 'jogos')}${me ? ` · ${esc(M.liga)}` : ''}</span></div>
         <div class="card stat stat-tile"><small>Garçom da temporada</small><strong>${gar ? gar.a : 0}</strong><span>${gar ? `${esc(gar.nome)} · assistências` : '—'}</span></div>
       </section>
 
@@ -722,8 +727,23 @@
   }
 
   const POS_ORDEM = ['gol', 'ld', 'zag', 'le', 'ala', 'vol', 'mc', 'md', 'me', 'mei', 'pd', 'pe', 'sa', 'ata'];
-  const MOSTRAR = { todos: ['Todos', () => true], atual: ['Elenco atual', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'], sairam: ['Saíram', p => p.situacao === 'saiu'] };
-  const ui = { sort: 'g', dir: -1, temporada: null, mostrar: 'todos', tempTransf: null };
+  // Quem saiu do clube não aparece na lista (continua contando nas estatísticas e em Transferências).
+  const MOSTRAR = { todos: ['Todos', () => true], atual: ['No clube', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'] };
+  const ui = {
+    sort: 'g', dir: -1, temporada: null, mostrar: 'todos', tempTransf: null,
+    transf: { chegadas: { k: 'ep', dir: -1 }, saidas: { k: 'ep', dir: -1 } }
+  };
+  const ordemPosicao = p => { const i = POS_ORDEM.indexOf(norm(p)); return i < 0 ? 99 : i; };
+  // Ordena transferências por jogador, posição, clube, valor ou episódio; vazios sempre no fim.
+  function ordenarTransf(lista, { k, dir }) {
+    const val = t => k === 'jogador' ? t.jogador : k === 'clube' ? t.clube : k === 'pos' ? ordemPosicao(t.pos) : k === 'valor' ? t.valor : t.ep;
+    return [...lista].sort((a, b) => {
+      const va = val(a), vb = val(b);
+      if ((va == null || va === '') !== (vb == null || vb === '')) return va == null || va === '' ? 1 : -1;
+      const c = typeof va === 'string' ? va.localeCompare(vb, 'pt-BR') : va - vb;
+      return dir * c || (b.ep ?? 0) - (a.ep ?? 0);
+    });
+  }
   function seasonSelect(id, value, M) {
     return `<label>Temporada <select id="${id}"><option value="todas" ${value === 'todas' ? 'selected' : ''}>Todas</option>${M.seasons.map(s => `<option ${s === value ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>`;
   }
@@ -748,7 +768,7 @@
     list.sort((a, b) => compara(a, b) || b.g - a.g || b.a - a.a || a.nome.localeCompare(b.nome, 'pt-BR'));
     const top = k => { const p = [...list].sort((a, b) => b[k] - a[k])[0]; return p && p[k] > 0 ? p : null; };
     const [tg, ta, tga] = [top('g'), top('a'), top('ga')];
-    const base = list.filter(p => p.origem === 'base');
+    const base = list.filter(p => p.origem === 'base' && p.situacao !== 'saiu');
     const th = (k, label, cls = '') => `<th data-sort="${k}" class="${cls} ${ui.sort === k ? 'ordenado' : ''}">${label}${ui.sort === k ? (ui.dir < 0 ? ' ▾' : ' ▴') : ''}</th>`;
     return `<div class="secao-topo"><h2>Jogadores</h2>
         <div class="filtros">${seasonSelect('sel-temp', ui.temporada, M)}
@@ -762,7 +782,7 @@
       </div>
       <div class="tabela-wrap"><table>
         <thead><tr>${th('nome', 'Jogador', 'esq')}${th('pos', 'Pos')}${th('nac', 'País', 'esq')}${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
-        <tbody>${list.filter(MOSTRAR[ui.mostrar][1]).map(p => `<tr class="${p.situacao === 'saiu' ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
+        <tbody>${list.filter(p => p.situacao !== 'saiu').filter((MOSTRAR[ui.mostrar] || MOSTRAR.todos)[1]).map(p => `<tr class="${p.situacao === 'saiu' ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>
       ${nationalities(M)}`;
   }
@@ -790,8 +810,11 @@
   function pageTransferencias(M) {
     if (ui.tempTransf == null) ui.tempTransf = M.temporadaAtual || 'todas';
     const lista = ui.tempTransf === 'todas' ? M.transfers : M.transfers.filter(t => t.temporada === ui.tempTransf);
-    const chegadas = lista.filter(t => t.tipo === 'chegada').reverse();
-    const saidas = lista.filter(t => t.tipo === 'saida').reverse();
+    const chegadas = ordenarTransf(lista.filter(t => t.tipo === 'chegada'), ui.transf.chegadas);
+    const saidas = ordenarTransf(lista.filter(t => t.tipo === 'saida'), ui.transf.saidas);
+    const seta = (grupo, k) => ui.transf[grupo].k === k ? (ui.transf[grupo].dir < 0 ? ' ▾' : ' ▴') : '';
+    const thT = (grupo, k, label, cls = '') => `<th data-tsort="${grupo}:${k}" class="${cls} ${ui.transf[grupo].k === k ? 'ordenado' : ''}">${label}${seta(grupo, k)}</th>`;
+    const chip = (k, label) => `<button type="button" class="chip-ordem ${ui.transf.chegadas.k === k ? 'ativo' : ''}" data-tsort="chegadas:${k}">${label}${seta('chegadas', k)}</button>`;
     const soma = l => l.reduce((s, t) => s + (t.valor || 0), 0);
     const gasto = soma(chegadas), receita = soma(saidas), saldo = receita - gasto;
     const valor = t => t.valor != null ? fmtMoney(t.valor) : esc(t.valorTexto || '—');
@@ -823,12 +846,13 @@
         <div class="card stat"><small>Arrecadado com saídas</small><strong>${fmtMoney(receita)}</strong><span>${plural(saidas.length, 'saída', 'saídas')}</span></div>
         <div class="card stat"><small>Saldo</small><strong class="${saldo >= 0 ? 'positivo' : 'negativo'}">${saldo < 0 ? '−' : ''}${fmtMoney(Math.abs(saldo))}</strong><span>${saldo >= 0 ? 'lucro no mercado' : 'investimento líquido'}</span></div>
       </div>
-      <section class="secao"><h3 class="subtitulo">Chegadas</h3>
+      <section class="secao"><div class="secao-topo"><h3 class="subtitulo">Chegadas</h3>
+        ${chegadas.length > 1 ? `<div class="ordenar" role="group" aria-label="Ordenar chegadas"><small>Ordenar:</small>${chip('ep', 'Episódio')}${chip('jogador', 'Jogador')}${chip('pos', 'Posição')}${chip('clube', 'Clube')}${chip('valor', 'Valor')}</div>` : ''}</div>
         ${cards ? `<div class="grid grid-3">${cards}</div>` : '<p class="mudo">Nenhuma chegada registrada nesta temporada.</p>'}
       </section>
       <section class="secao"><h3 class="subtitulo">Saídas</h3>
         ${linhas ? `<div class="tabela-wrap"><table>
-          <thead><tr><th class="esq">Jogador</th><th>Pos</th><th class="esq">Destino</th><th>Valor recebido</th><th>Ep.</th></tr></thead>
+          <thead><tr>${thT('saidas', 'jogador', 'Jogador', 'esq')}${thT('saidas', 'pos', 'Pos')}${thT('saidas', 'clube', 'Destino', 'esq')}${thT('saidas', 'valor', 'Valor recebido')}${thT('saidas', 'ep', 'Ep.')}</tr></thead>
           <tbody>${linhas}</tbody></table></div>` : '<p class="mudo">Nenhuma saída registrada nesta temporada.</p>'}
       </section>`;
   }
@@ -922,6 +946,13 @@
     if (ev.target.id === 'sel-transf') { ui.tempTransf = ev.target.value; render(); }
   });
   $app.addEventListener('click', ev => {
+    const ts = ev.target.closest('[data-tsort]');
+    if (ts) {
+      const [grupo, k] = ts.dataset.tsort.split(':'), o = ui.transf[grupo];
+      // Texto e posição começam em ordem crescente; valor e episódio começam do maior.
+      if (o.k === k) o.dir *= -1; else { o.k = k; o.dir = ['jogador', 'pos', 'clube'].includes(k) ? 1 : -1; }
+      return render();
+    }
     const th = ev.target.closest('th[data-sort]');
     if (!th) return;
     const k = th.dataset.sort;
