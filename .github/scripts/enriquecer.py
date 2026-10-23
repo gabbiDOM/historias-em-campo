@@ -155,16 +155,20 @@ def foto_ea(nome, clube_pref):
 
 
 def main():
-    abas = ler_planilha("dados/dados.xlsx")
-    cfg = {norm(r.get("chave")): r.get("valor") for r in abas.get("clube", [])}
-    meu_clube = str(cfg.get("clube") or "")
-
-    nomes_clubes = {meu_clube}
-    nomes_clubes |= {r.get("adversario") for r in abas.get("jogos", [])}
-    nomes_clubes |= {r.get("time") for r in abas.get("classificacao", [])}
-    nomes_clubes |= {r.get("clube") for r in abas.get("transferencias", [])}
+    # Escudos, estádios e fotos são compartilhados entre todas as séries.
+    nomes_clubes, nomes_comps, pedidos = set(), set(), []
+    for arquivo in sorted(pathlib.Path("dados/series").glob("*/dados.xlsx")):
+        abas = ler_planilha(arquivo)
+        cfg = {norm(r.get("chave")): r.get("valor") for r in abas.get("clube", [])}
+        meu_clube = str(cfg.get("clube") or "")
+        nomes_clubes |= {meu_clube}
+        nomes_clubes |= {r.get("adversario") for r in abas.get("jogos", [])}
+        nomes_clubes |= {r.get("time") for r in abas.get("classificacao", [])}
+        nomes_clubes |= {r.get("clube") for r in abas.get("transferencias", [])}
+        nomes_comps |= {str(r.get("competicao")).strip() for r in abas.get("jogos", []) if r.get("competicao")}
+        pedidos += [(r.get("jogador"), meu_clube) for r in abas.get("elenco", [])]
+        pedidos += [(r.get("jogador"), r.get("clube")) for r in abas.get("transferencias", []) if norm(r.get("tipo")).startswith("cheg")]
     nomes_clubes = {str(n).strip() for n in nomes_clubes if n and norm(n) not in SEM_CLUBE}
-    nomes_comps = {str(r.get("competicao")).strip() for r in abas.get("jogos", []) if r.get("competicao")}
 
     dados = load(CLUBES, {"clubes": {}, "competicoes": {}})
     for nome in sorted(nomes_clubes - set(dados["clubes"])):
@@ -182,8 +186,6 @@ def main():
     save(CLUBES, dados)
 
     fotos = load(FOTOS, {})
-    pedidos = [(r.get("jogador"), meu_clube) for r in abas.get("elenco", [])]
-    pedidos += [(r.get("jogador"), r.get("clube")) for r in abas.get("transferencias", []) if norm(r.get("tipo")).startswith("cheg")]
     for nome, clube in pedidos:
         nome = str(nome or "").strip()
         if not nome or nome in fotos:

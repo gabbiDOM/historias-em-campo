@@ -1,9 +1,0 @@
-{
-  "2026/27": {
-    "nome": "Entre o Tango e os Lobos",
-    "logo": "assets/temporadas/entre-o-tango-e-os-lobos.webp",
-    "imagem": "assets/treinador-1.webp",
-    "chamada": "Andrés D'Alessandro volta a Wolfsburg, agora como treinador, com uma missão: devolver os Lobos à Bundesliga.",
-    "lancamentos": { "dias": ["terça", "sexta"], "hora": "18:00", "utc": -3 }
-  }
-}

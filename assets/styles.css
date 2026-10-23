@@ -633,3 +633,8 @@ th[data-tsort].ordenado { color: var(--text); }
   .hero-arte img { left: 50%; right: auto; transform: translateX(-50%); width: auto; height: 100%; }
   .agenda-regra { margin-left: 0; width: 100%; }
 }
+
+/* seletor de série no topo (aparece com 2+ séries cadastradas) */
+.seletor-serie select { background: rgba(255, 255, 255, .1); color: #fff; border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; max-width: 260px; }
+.seletor-serie option { color: #14201a; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

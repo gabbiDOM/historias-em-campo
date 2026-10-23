@@ -2,13 +2,14 @@
 (() => {
   'use strict';
 
-  const DATA_URL = 'dados/dados.xlsx';
-  const VIDEOS_URL = 'dados/videos.json'; // gerado pela automação do GitHub a partir do feed do canal
+  // Cada série (um save: jogo + nome + clube) tem a sua pasta em dados/series/<id>/ com
+  // dados.xlsx (planilha do Drive), videos.json (feed do canal) e treinador.json.
+  const SERIES_URL = 'dados/series.json';
+  const serieUrl = (id, arquivo) => `dados/series/${id}/${arquivo}`;
+  // Compartilhados entre as séries:
   const FOTOS_URL = 'dados/fotos.json'; // miniaturas da EA por nome; a coluna Foto da planilha tem prioridade
   const CLUBES_URL = 'dados/clubes.json'; // escudos, estádios e logos de campeonatos (Wikidata); a aba Clubes tem prioridade
   const FOTOS_CORPO_URL = 'dados/fotos-corpo.json'; // foto de corpo inteiro, usada no card do artilheiro
-  const TREINADOR_URL = 'dados/treinador.json';
-  const TEMPORADAS_URL = 'dados/temporadas.json'; // nome e logo de cada temporada da série
   const $app = document.getElementById('app');
   const $avisos = document.getElementById('avisos');
 
@@ -112,7 +113,7 @@
 
   // ---------- modelo ----------
   function build(wb, extras) {
-    const { videos, fotos, clubesJson, treinador, fotosCorpo, temporadas } = extras;
+    const { videos, fotos, clubesJson, treinador, fotosCorpo, serie, series } = extras;
     const cfg = {};
     sheet(wb, 'Clube').forEach(r => { if (r.chave) cfg[norm(r.chave)] = r.valor; });
 
@@ -259,11 +260,15 @@
 
     const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada), ...transfers.map(t => t.temporada)].filter(Boolean))];
     const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
-    const temporadaInfo = Object.entries(temporadas || {}).find(([k]) => season(k) === temporadaAtual)?.[1] || {};
+    // Nome, logo, chamada e agenda vêm da série (dados/series.json).
+    const temporadaInfo = serie || {};
+    // De onde vêm a campanha e os gols pró/contra do Início: "tabela" (classificação do jogo,
+    // inclui partidas não gravadas) ou "jogos" (só as partidas registradas na aba Jogos).
+    const campanhaFonte = norm(cfg.campanhafonte) === 'jogos' ? 'jogos' : 'tabela';
 
     return {
       cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, fotosCorpoMap, clubes, competicoes, transfers, treinador,
-      recordes, metas, titulos, seasons, temporadaAtual, temporadaInfo, warnings,
+      recordes, metas, titulos, seasons, temporadaAtual, temporadaInfo, campanhaFonte, serie: serie || {}, series: series || [], warnings,
       // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
       totalTimes: num(cfg.totaltimes) ?? 18,
       zonas: {
@@ -630,13 +635,14 @@
     const season = M.games.filter(g => g.temporada === M.temporadaAtual);
     const lastTableEp = M.tableEps[M.tableEps.length - 1];
     const me = lastTableEp != null ? clubRow(M, lastTableEp) : null;
+    const tab = M.campanhaFonte === 'tabela' ? me : null; // coluna campanha_fonte da aba Clube
     // Campanha e gols da temporada seguem a classificação do jogo (inclui partidas não gravadas);
     // sem tabela, usa os jogos registrados. Artilharia e assistências vêm sempre da aba Gols.
-    const v = me ? me.v : season.filter(g => g.res === 'V').length;
-    const e = me ? me.e : season.filter(g => g.res === 'E').length;
-    const d = me ? me.d : season.filter(g => g.res === 'D').length;
-    const gp = me ? me.gp : season.reduce((s, g) => s + g.gp, 0), gc = me ? me.gc : season.reduce((s, g) => s + g.gc, 0);
-    const jogosTemp = me ? me.j : season.length;
+    const v = tab ? tab.v : season.filter(g => g.res === 'V').length;
+    const e = tab ? tab.e : season.filter(g => g.res === 'E').length;
+    const d = tab ? tab.d : season.filter(g => g.res === 'D').length;
+    const gp = tab ? tab.gp : season.reduce((s, g) => s + g.gp, 0), gc = tab ? tab.gc : season.reduce((s, g) => s + g.gc, 0);
+    const jogosTemp = tab ? tab.j : season.length;
     const st = playerStats(M, season);
     const art = topBy(st, 'g'), gar = topBy(st, 'a');
     const forma = season.slice(-5).map(g => `<span class="res res-${g.res}" title="${esc(scoreline(M, g))}">${g.res}</span>`).join('');
@@ -671,7 +677,7 @@
       <section class="secao grid grid-4">
         <div class="card stat stat-tile"><small>Posição atual</small><strong>${me ? ordinal(me.pos) : '—'}</strong><span>${me ? `${me.pts} pts · ${esc(M.liga)}` : 'sem tabela'}</span></div>
         <div class="card stat stat-tile"><small>Campanha na temporada</small><strong>${v}V ${e}E ${d}D</strong><div class="forma" aria-label="Últimos jogos">${forma}</div></div>
-        <div class="card stat stat-tile"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(jogosTemp, 'jogo', 'jogos')}${me ? ` · ${esc(M.liga)}` : ''}</span></div>
+        <div class="card stat stat-tile"><small>Gols marcados / sofridos</small><strong>${gp} / ${gc}</strong><span>${plural(jogosTemp, 'jogo', 'jogos')}${tab ? ` · ${esc(M.liga)}` : ''}</span></div>
         <div class="card stat stat-tile"><small>Garçom da temporada</small><strong>${gar ? gar.a : 0}</strong><span>${gar ? `${esc(gar.nome)} · assistências` : '—'}</span></div>
       </section>
 
@@ -970,7 +976,18 @@
     document.title = nome;
     document.getElementById('nome-portal').textContent = nome;
     document.getElementById('rodape-portal').textContent = nome;
-    document.getElementById('sub-portal').textContent = `${M.clube} · Modo Carreira Realista · FC 27`;
+    document.getElementById('sub-portal').textContent = [M.serie.jogo, M.serie.nome || M.clube].filter(Boolean).join(' · ') || `${M.clube} · Modo Carreira Realista`;
+    // Seletor de série: só aparece quando houver mais de uma cadastrada.
+    const $seletor = document.getElementById('seletor-serie');
+    if ($seletor && M.series.length > 1) {
+      $seletor.innerHTML = `<label><span class="sr-only">Série</span><select id="sel-serie" aria-label="Escolher série">${M.series.map(s =>
+        `<option value="${esc(s.id)}" ${s.id === M.serie.id ? 'selected' : ''}>${esc([s.jogo, s.nome].filter(Boolean).join(' · '))}${s.atual ? ' (atual)' : ''}</option>`).join('')}</select></label>`;
+      $seletor.hidden = false;
+      document.getElementById('sel-serie').addEventListener('change', ev => {
+        const atual = M.series.find(s => s.atual);
+        location.search = ev.target.value === (atual && atual.id) ? '' : `?serie=${encodeURIComponent(ev.target.value)}`;
+      });
+    }
     if (M.cfg.canal) document.getElementById('rodape-canal').textContent = M.cfg.canal;
     if (M.cfg.linkcanal) document.getElementById('rodape-canal').href = document.getElementById('link-youtube').href = M.cfg.linkcanal;
     // Escudo do topo: o da aba Clube; senão o encontrado pela automação; senão a inicial.
@@ -991,12 +1008,18 @@
       const bust = `?v=${Date.now()}`;
       // Arquivos de apoio são opcionais: sem eles, o site usa só a planilha.
       const optional = url => fetch(url + bust, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
-      const extrasReq = Promise.all([VIDEOS_URL, FOTOS_URL, CLUBES_URL, TREINADOR_URL, FOTOS_CORPO_URL, TEMPORADAS_URL].map(optional));
-      const res = await fetch(DATA_URL + bust, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Não foi possível baixar ${DATA_URL} (HTTP ${res.status}).`);
+      // Série escolhida pelo link (?serie=id); sem parâmetro, abre a série atual do cadastro.
+      const cadastro = await optional(SERIES_URL);
+      if (!cadastro || !Array.isArray(cadastro.series) || !cadastro.series.length) throw new Error(`Não foi possível ler ${SERIES_URL}.`);
+      const pedida = new URLSearchParams(location.search).get('serie');
+      const serie = cadastro.series.find(s => s.id === pedida) || cadastro.series.find(s => s.id === cadastro.atual) || cadastro.series[0];
+      const dataUrl = serieUrl(serie.id, 'dados.xlsx');
+      const extrasReq = Promise.all([serieUrl(serie.id, 'videos.json'), FOTOS_URL, CLUBES_URL, serieUrl(serie.id, 'treinador.json'), FOTOS_CORPO_URL].map(optional));
+      const res = await fetch(dataUrl + bust, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Não foi possível baixar ${dataUrl} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-      const [videos, fotos, clubesJson, treinador, fotosCorpo, temporadas] = await extrasReq;
-      MODEL = build(wb, { videos, fotos, clubesJson, treinador, fotosCorpo, temporadas });
+      const [videos, fotos, clubesJson, treinador, fotosCorpo] = await extrasReq;
+      MODEL = build(wb, { videos, fotos, clubesJson, treinador, fotosCorpo, serie, series: cadastro.series.map(s => ({ ...s, atual: s.id === cadastro.atual })) });
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();
