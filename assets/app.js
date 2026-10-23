@@ -245,6 +245,19 @@
       elenco.set(k, p);
     });
 
+    // Conferência do Elenco: dados faltando em quem está no clube, e autores de gols/assistências
+    // que não aparecem nem no Elenco nem nas Transferências (nome digitado diferente ou linha apagada).
+    elenco.forEach(p => {
+      if (!p.doElenco || p.situacao === 'saiu') return;
+      const faltam = [!p.pos && 'posição', !p.nac && 'nacionalidade'].filter(Boolean);
+      if (faltam.length) warnings.push(`Elenco: ${p.nome} está sem ${faltam.join(' e ')}.`);
+    });
+    const semCadastro = new Set();
+    games.forEach(g => g.gols.forEach(x => [x.autor, x.assist].forEach(n => {
+      if (n && !isOwnGoal(n) && !elenco.has(norm(n))) semCadastro.add(n);
+    })));
+    semCadastro.forEach(n => warnings.push(`Gols: ${n} aparece em gols ou assistências, mas não está no Elenco nem nas Transferências.`));
+
     const recordes = sheet(wb, 'Recordes').map(r => ({
       chave: norm(r.chave), titulo: String(r.recorde || r.chave), valor: num(r.valor),
       detentor: String(r.detentor || ''), quando: String(r.quando || ''), obs: String(r.observacao || ''), confirmado: sim(r.confirmado)
