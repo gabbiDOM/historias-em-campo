@@ -167,10 +167,14 @@
     // Escudos e estádios: aba Clubes (se existir) tem prioridade sobre o que a automação encontrou.
     const clubes = new Map();
     Object.entries((clubesJson && clubesJson.clubes) || {}).forEach(([k, v]) => clubes.set(norm(k), { escudo: v.escudo || '', estadio: v.estadio || '' }));
+    // Link de página (ex.: artigo da Wikipédia) não é imagem: nesse caso vale o escudo da automação.
+    const ehImagem = u => /\.(png|jpe?g|svg|webp|gif)(\?|$)|special:filepath|upload\.wikimedia|gstatic|googleusercontent|ytimg/i.test(u) && !/wikipedia\.org\/wiki\//i.test(u);
     sheet(wb, 'Clubes').forEach(r => {
       if (!r.clube) return;
       const atual = clubes.get(norm(r.clube)) || {};
-      clubes.set(norm(r.clube), { escudo: String(r.escudo || '') || atual.escudo || '', estadio: String(r.estadio || '') || atual.estadio || '' });
+      const escudo = String(r.escudo || '').trim();
+      if (escudo && !ehImagem(escudo)) warnings.push(`Clubes: o escudo do ${r.clube} é um link de página, não de imagem. Use o link direto da imagem ou deixe vazio.`);
+      clubes.set(norm(r.clube), { escudo: (ehImagem(escudo) ? escudo : '') || atual.escudo || '', estadio: String(r.estadio || '') || atual.estadio || '' });
     });
     const competicoes = new Map(Object.entries((clubesJson && clubesJson.competicoes) || {}).map(([k, v]) => [norm(k), v.logo || '']));
 
@@ -204,15 +208,16 @@
     });
 
     // Transferências: chegadas e saídas por temporada.
+    // Posição, país e foto vêm da própria aba se existirem; senão, do Elenco.
     const transfers = sheet(wb, 'Transferencias')
       .map(r => {
-        const ep = num(r.episodio);
+        const ep = num(r.episodio), e = elenco.get(norm(r.jogador)) || {};
         return {
           temporada: season(r.temporada) || epSeason.get(ep) || season(cfg.temporadaatual), ep,
           tipo: norm(r.tipo).startsWith('sa') ? 'saida' : 'chegada',
-          jogador: String(r.jogador || ''), pos: String(r.posicao || ''), idade: num(r.idade), nac: String(r.nacionalidade || ''),
+          jogador: String(r.jogador || ''), pos: String(r.posicao || e.pos || ''), idade: num(r.idade), nac: String(r.nacionalidade || e.nac || ''),
           clube: String(r.clube || ''), valor: parseMoney(r.valor), valorTexto: String(r.valor ?? ''), obs: String(r.observacao || ''),
-          foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
+          foto: String(r.foto || '').trim() || e.foto || fotosMap.get(norm(r.jogador)) || ''
         };
       })
       .filter(t => t.jogador)
