@@ -89,6 +89,26 @@
       "wikidata": "Q101859",
       "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfL_Wolfsburg_logo_2026.svg?width=160",
       "estadio": "Volkswagen Arena"
+    },
+    "Beşiktaş": {
+      "wikidata": "Q172567",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/BesiktasJK-Logo.svg?width=160",
+      "estadio": "Vodafone Park"
+    },
+    "Dynamo Dresden": {
+      "wikidata": "Q141931",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_Dinamo_Dresde_desde_2011.svg?width=160",
+      "estadio": "Rudolf-Harbig-Stadion"
+    },
+    "Selangor FA": {
+      "wikidata": "Q1835695",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/a/a0/Selangor_FA.svg/250px-Selangor_FA.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Shah Alam Stadium"
+    },
+    "Tigres": {
+      "wikidata": "Q849823",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Escudo_del_Club_de_F%C3%BAtbol_Tigres_UANL.svg?width=160",
+      "estadio": "Estadio Universitario"
     }
   },
   "competicoes": {
