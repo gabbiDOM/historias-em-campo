@@ -221,7 +221,10 @@
           foto: String(r.foto || '').trim() || e.foto || fotosMap.get(norm(r.jogador)) || ''
         };
       })
-      .filter(t => t.jogador)
+      .filter(t => {
+        if (!t.jogador) warnings.push(`Transferências: há uma ${t.tipo === 'saida' ? 'saída' : 'chegada'}${t.ep != null ? ` do EP ${t.ep}` : ''}${t.clube ? ` (${t.clube})` : ''} sem o nome do jogador.`);
+        return t.jogador;
+      })
       .sort((a, b) => (a.ep ?? 0) - (b.ep ?? 0));
 
     // Cada transferência, em ordem de episódio, atualiza a situação do jogador (reforço, emprestado, vendido).
