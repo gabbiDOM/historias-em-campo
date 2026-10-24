@@ -87,6 +87,7 @@ h3 { font-size: 22px; }
 /* ---------- avisos ---------- */
 #avisos:not(:empty) { padding-top: 16px; }
 .aviso { background: var(--warn-bg); color: var(--warn-text); border-radius: 10px; padding: 10px 14px; font-size: 14px; margin-bottom: 8px; }
+.aviso-ok { background: color-mix(in srgb, var(--win) 18%, transparent); color: var(--text); }
 .aviso summary { cursor: pointer; font-weight: 600; }
 .aviso ul { margin: 6px 0 0; padding-left: 18px; }
 

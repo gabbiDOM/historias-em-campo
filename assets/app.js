@@ -1001,7 +1001,11 @@
       $seletor.hidden = false;
       document.getElementById('sel-serie').addEventListener('change', ev => {
         const atual = M.series.find(s => s.atual);
-        location.search = ev.target.value === (atual && atual.id) ? '' : `?serie=${encodeURIComponent(ev.target.value)}`;
+        // Troca só a série, mantendo outros parâmetros do link (como ?conferir).
+        const params = new URLSearchParams(location.search);
+        if (ev.target.value === (atual && atual.id)) params.delete('serie'); else params.set('serie', ev.target.value);
+        const q = params.toString().replace(/=(?=&|$)/g, '');
+        location.search = q ? `?${q}` : '';
       });
     }
     if (M.cfg.canal) document.getElementById('rodape-canal').textContent = M.cfg.canal;
@@ -1014,7 +1018,12 @@
 
     const avisos = [];
     if (sim(M.cfg.dadosexemplo)) avisos.push('<div class="aviso"><b>Dados de exemplo.</b> Jogadores, placares e tabelas são fictícios, só para mostrar o formato do portal.</div>');
-    if (M.warnings.length) avisos.push(`<details class="aviso"><summary>Conferência da planilha: ${plural(M.warnings.length, 'ponto', 'pontos')} para revisar</summary><ul>${M.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>`);
+    // A conferência da planilha é só para quem edita: aparece apenas no link com ?conferir.
+    if (new URLSearchParams(location.search).has('conferir')) {
+      avisos.push(M.warnings.length
+        ? `<details class="aviso" open><summary>Conferência da planilha: ${plural(M.warnings.length, 'ponto', 'pontos')} para revisar</summary><ul>${M.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>`
+        : '<div class="aviso aviso-ok"><b>Conferência da planilha:</b> tudo certo, nenhum ponto para revisar.</div>');
+    }
     $avisos.innerHTML = avisos.join('');
   }
 
