@@ -46,24 +46,42 @@ def via_feed():
     return None
 
 
+UNIDADES = {  # "há 5 h", "há 2 dias", "3 weeks ago"... em segundos
+    "s": 1, "seg": 1, "second": 1, "min": 60, "minute": 60, "h": 3600, "hora": 3600, "hour": 3600,
+    "dia": 86400, "day": 86400, "semana": 604800, "week": 604800, "mes": 2592000, "mês": 2592000,
+    "meses": 2592000, "month": 2592000, "ano": 31536000, "year": 31536000,
+}
+
+
+def data_relativa(texto):
+    """Converte "há 5 h" / "5 hours ago" numa data UTC aproximada (o feed traz a exata)."""
+    m = re.search(r"(\d+)\s*([a-zA-Zêç]+)", texto)
+    if not m:
+        return None
+    unidade = m.group(2).lower().rstrip("s") if m.group(2).lower() not in ("s", "meses") else m.group(2).lower()
+    segundos = UNIDADES.get(unidade) or UNIDADES.get(m.group(2).lower())
+    if not segundos:
+        return None
+    return datetime.fromtimestamp(time.time() - int(m.group(1)) * segundos, timezone.utc).isoformat(timespec="seconds")
+
+
 def via_pagina():
-    """Lista de (id, titulo, publicado) lendo a aba Vídeos do canal e a página de cada vídeo."""
+    """Lista de (id, titulo, publicado) lendo a aba Vídeos do canal (título completo e data relativa)."""
     pagina = baixar(f"https://www.youtube.com/channel/{CHANNEL_ID}/videos").decode("utf-8", "ignore")
-    ids = list(dict.fromkeys(re.findall(r'"videoId":"([\w-]{11})"', pagina)))[:RECENTES]
     videos = []
-    for vid in ids:
-        try:
-            p = baixar(f"https://www.youtube.com/watch?v={vid}").decode("utf-8", "ignore")
-            titulo = re.search(r'<meta name="title" content="([^"]*)"', p)
-            data = re.search(r'"publishDate":"([^"]+)"', p) or re.search(r'itemprop="datePublished" content="([^"]+)"', p)
-            if titulo and data:
-                videos.append((vid, html.unescape(titulo.group(1)), data.group(1)))
-        except Exception as e:
-            print(f"não consegui ler o vídeo {vid}: {e}")
+    for bloco in pagina.split('"lockupViewModel":{"contentImage"')[1:RECENTES + 1]:
+        vid = re.search(r"/vi/([\w-]{11})/", bloco)
+        titulo = re.search(r'"lockupMetadataViewModel":\{"title":\{"content":"((?:[^"\\]|\\.)*)"', bloco)
+        quando = re.search(r'"content":"((?:há|ha) [^"]+|[^"]* ago)"', bloco)
+        if not (vid and titulo):
+            continue
+        texto = html.unescape(json.loads(f'"{titulo.group(1)}"'))
+        videos.append((vid.group(1), texto, data_relativa(quando.group(1)) if quando else None))
     return videos
 
 
 entradas = via_feed()
+data_exata = entradas is not None
 if entradas is None:
     try:
         entradas = via_pagina()
@@ -96,8 +114,12 @@ for serie in SERIES:
             episodio = 0
         else:
             episodio = None
-        # Data sempre em UTC ("2026-10-27T21:00:21+00:00"), igual ao feed.
-        try:
+        # A página do canal só dá data aproximada ("há 5 h"): para vídeo já conhecido, vale a data salva.
+        anterior = videos.get(vid, {}).get("publicado")
+        if not data_exata and anterior:
+            publicado = anterior
+        publicado = publicado or anterior or datetime.now(timezone.utc).isoformat(timespec="seconds")
+        try:  # data sempre em UTC ("2026-10-27T21:00:21+00:00"), igual ao feed
             publicado = datetime.fromisoformat(publicado).astimezone(timezone.utc).isoformat()
         except ValueError:
             pass
