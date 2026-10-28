@@ -129,6 +129,21 @@
       "wikidata": "Q160530",
       "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfL_Osnabrueck_Logo_2021%E2%80%93.svg?width=160",
       "estadio": "Bremer Brücke"
+    },
+    "Barcelona": {
+      "wikidata": "Q10467",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/250px-FC_Barcelona_%28crest%29.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Estadi Johan Cruyff"
+    },
+    "Independiente Rivadavia": {
+      "wikidata": "Q2454482",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Escudo_del_Club_Independiente_Rivadavia.svg?width=160",
+      "estadio": "autista Tragantini Stadium"
+    },
+    "RW Essen": {
+      "wikidata": "Q155218",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Rot-Weiss_Essen.svg?width=160",
+      "estadio": "Stadion an der Hafenstraße"
     }
   },
   "competicoes": {
