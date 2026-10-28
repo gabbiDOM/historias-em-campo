@@ -4,6 +4,8 @@ import json
 import os
 import pathlib
 import re
+import sys
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -16,7 +18,19 @@ NS = {
 
 url = f"https://www.youtube.com/feeds/videos.xml?channel_id={CHANNEL_ID}"
 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-entradas = ET.fromstring(urllib.request.urlopen(req, timeout=30).read()).findall("a:entry", NS)
+# O feed do YouTube às vezes responde 404/5xx por alguns minutos. Tenta algumas vezes e,
+# se continuar fora, mantém os vídeos já conhecidos em vez de derrubar a atualização inteira.
+entradas = None
+for tentativa in range(1, 5):
+    try:
+        entradas = ET.fromstring(urllib.request.urlopen(req, timeout=30).read()).findall("a:entry", NS)
+        break
+    except Exception as e:
+        print(f"feed do YouTube indisponível (tentativa {tentativa}/4): {e}")
+        time.sleep(15 * tentativa)
+if entradas is None:
+    print("Seguindo sem novidades do YouTube; os vídeos já conhecidos continuam no site.")
+    sys.exit(0)
 
 for serie in SERIES:
     # Só entram vídeos cujo título contém o filtro da série.
