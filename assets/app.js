@@ -204,7 +204,7 @@
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
         origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida'),
-        ...situacao(r), situacaoManual: !!situacao(r).situacao, doElenco: true, foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || ''
+        ...situacao(r), situacaoManual: !!situacao(r).situacao, doElenco: true, foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || '', fotoReserva: fotosMap.get(norm(r.jogador)) || ''
       });
     });
 
@@ -218,7 +218,7 @@
           tipo: norm(r.tipo).startsWith('sa') ? 'saida' : 'chegada',
           jogador: String(r.jogador || ''), pos: String(r.posicao || e.pos || ''), idade: num(r.idade), nac: String(r.nacionalidade || e.nac || ''),
           clube: String(r.clube || ''), valor: parseMoney(r.valor), valorTexto: String(r.valor ?? ''), obs: String(r.observacao || ''),
-          foto: String(r.foto || '').trim() || e.foto || fotosMap.get(norm(r.jogador)) || ''
+          foto: String(r.foto || '').trim() || e.foto || fotosMap.get(norm(r.jogador)) || '', fotoReserva: e.fotoReserva || fotosMap.get(norm(r.jogador)) || ''
         };
       })
       .filter(t => {
@@ -390,8 +390,11 @@
     return url ? `<img class="logo-comp" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
   }
   // Foto da EA quando existe; sem foto (ou se a imagem falhar) ficam as iniciais.
+  // Se o link da coluna Foto falhar (sites que bloqueiam imagens em outros sites), usa a foto
+  // salva no site (fotos.json); se não houver, ficam as iniciais.
   function avatar(p, cls = '') {
-    const img = p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    const reserva = p.fotoReserva && p.fotoReserva !== p.foto ? ` data-reserva="${esc(p.fotoReserva)}"` : '';
+    const img = p.foto ? `<img src="${esc(p.foto)}"${reserva} alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(this.dataset.reserva){this.src=this.dataset.reserva;this.removeAttribute('data-reserva')}else{this.remove()}">` : '';
     return `<span class="avatar ${cls}" aria-hidden="true">${esc(initials(p.nome || p.jogador))}${img}</span>`;
   }
   const rodadaLabel = g => g.rodada === '' ? '' : (num(g.rodada) != null ? `Rodada ${g.rodada}` : esc(g.rodada));
