@@ -526,6 +526,25 @@ th[data-tsort] { cursor: pointer; user-select: none; }
 th[data-tsort].ordenado { color: var(--text); }
 .subtitulo { margin-bottom: 12px; font-size: 24px; }
 .chegada { display: flex; flex-direction: column; gap: 12px; position: relative; }
+/* chegadas em verde e saídas em vermelho: tokens redefinidos para o texto seguir legível */
+.chegada {
+  --text: #eef5ef; --muted: rgba(226, 242, 230, .72); --line: rgba(142, 229, 63, .25); --surface-2: rgba(255, 255, 255, .1); --surface: #fff;
+  color: var(--text); border-color: rgba(142, 229, 63, .4);
+  background:
+    radial-gradient(90% 90% at 100% 0%, rgba(142, 229, 63, .3), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 1px, transparent 1px 10px),
+    linear-gradient(155deg, #1f6a35, #0e2e1a);
+}
+.chegada .valor { color: #b9f28c; }
+.tabela-saidas {
+  --text: #f8ecec; --muted: rgba(248, 226, 226, .72); --line: rgba(255, 120, 120, .2); --surface-2: rgba(120, 15, 20, .55); --surface: #fff;
+  color: var(--text); border-color: rgba(229, 51, 58, .45);
+  background:
+    radial-gradient(70% 120% at 100% 0%, rgba(229, 51, 58, .28), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 10px),
+    linear-gradient(155deg, #4a1216, #240a0c);
+}
+.tabela-saidas .pts { color: #ffb4b8; }
 .chegada-topo { display: flex; align-items: center; gap: 14px; }
 .chegada-topo h3 { font-size: 22px; }
 .chegada-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

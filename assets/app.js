@@ -887,7 +887,7 @@
         ${cards ? `<div class="grid grid-3">${cards}</div>` : '<p class="mudo">Nenhuma chegada registrada nesta temporada.</p>'}
       </section>
       <section class="secao"><h3 class="subtitulo">Saídas</h3>
-        ${linhas ? `<div class="tabela-wrap"><table>
+        ${linhas ? `<div class="tabela-wrap tabela-saidas"><table>
           <thead><tr>${thT('saidas', 'jogador', 'Jogador', 'esq')}${thT('saidas', 'pos', 'Pos')}${thT('saidas', 'clube', 'Destino', 'esq')}${thT('saidas', 'valor', 'Valor recebido')}${thT('saidas', 'ep', 'Ep.')}</tr></thead>
           <tbody>${linhas}</tbody></table></div>` : '<p class="mudo">Nenhuma saída registrada nesta temporada.</p>'}
       </section>`;
