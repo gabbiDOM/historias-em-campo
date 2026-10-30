@@ -229,6 +229,12 @@
 
     // Cada transferência, em ordem de episódio, atualiza a situação do jogador (reforço, emprestado, vendido).
     // A coluna Situacao do Elenco, quando preenchida, tem a palavra final.
+    // Temporada escrita na Observação da saída, quando ainda não chegou ("Sai na temporada 27/28").
+    const saidaFutura = t => {
+      const m = t.obs.match(/(?:\d{2}|\d{4})\s*[\/-]\s*\d{2,4}/);
+      const alvo = m ? season(m[0]) : '';
+      return alvo && alvo > season(cfg.temporadaatual) ? alvo : '';
+    };
     transfers.forEach(t => {
       const k = norm(t.jogador);
       const p = elenco.get(k) || { nome: t.jogador, pos: t.pos, nac: t.nac, origem: '', situacao: '', situacaoLabel: '', foto: t.foto };
@@ -239,6 +245,10 @@
         if (!p.origem) p.origem = 'reforco';
         if (p.chegada == null) p.chegada = t.ep;
         if (!p.situacaoManual) { p.situacao = ''; p.situacaoLabel = ''; p.saida = null; } // voltou ao clube
+      } else if (saidaFutura(t)) {
+        // Venda fechada para outra temporada: segue no elenco até lá (ex.: "Sai na temporada 27/28").
+        p.saidaFutura = saidaFutura(t);
+        p.destinoFuturo = t.clube;
       } else if (!p.situacaoManual) {
         const emprestimo = norm(t.obs).startsWith('empre');
         p.situacao = emprestimo ? 'emprestado' : 'saiu';
@@ -747,6 +757,7 @@
     if (p.origem === 'base') tags.push(`<span class="tag base"${p.chegada != null ? ` title="Subiu no EP ${p.chegada}"` : ''}>Base</span>`);
     if (p.origem === 'reforco') tags.push(`<span class="tag"${p.chegada != null ? ` title="Chegou no EP ${p.chegada}"` : ''}>Reforço</span>`);
     if (p.situacao === 'emprestado') tags.push(`<span class="tag emprestado"${p.saida != null ? ` title="Emprestado no EP ${p.saida}"` : ''}>Emprestado</span>`);
+    if (p.saidaFutura && !p.situacao) tags.push(`<span class="tag de-saida"${p.destinoFuturo ? ` title="Vendido: vai para ${esc(p.destinoFuturo)}"` : ''}>Sai em ${esc(p.saidaFutura)}</span>`);
     if (p.situacao === 'saiu') tags.push(`<span class="tag">${esc(p.situacaoLabel)}${p.saida != null ? ` no EP ${p.saida}` : ''}</span>`);
     return tags.length ? ` ${tags.join(' ')}` : '';
   }

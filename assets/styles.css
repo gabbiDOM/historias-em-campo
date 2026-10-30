@@ -221,6 +221,7 @@ select {
 td .tag { font-size: 10px; padding: 2px 6px; margin-left: 4px; vertical-align: 1px; }
 .tag.base { background: #8ee53f; color: #0b2a10; font-weight: 800; box-shadow: 0 0 0 1px rgba(142, 229, 63, .5), 0 0 10px rgba(142, 229, 63, .45); }
 .tag.emprestado { background: #ff4d55; color: #fff; font-weight: 800; box-shadow: 0 0 0 1px rgba(255, 77, 85, .5), 0 0 10px rgba(255, 77, 85, .45); }
+.tag.de-saida { background: #f6c343; color: #3a2a05; font-weight: 800; box-shadow: 0 0 0 1px rgba(246, 195, 67, .5), 0 0 10px rgba(246, 195, 67, .4); }
 tr.fora td { opacity: .65; }
 .jogador { display: inline-flex; align-items: center; gap: 10px; }
 .avatar {
