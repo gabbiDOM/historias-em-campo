@@ -132,22 +132,54 @@
   // Episódio 0 é a INTRO: aparece na lista antes do EP 01, mas não tem jogos nem entra na contagem.
   const isIntro = e => e.n === 0;
   const cleanTitle = t => String(t || '').split('|')[0].trim() || String(t || '');
-  function mergeVideos(episodes, videos, temporadaPadrao) {
+  // Cada temporada recomeça no EP 01, então um episódio é identificado por temporada + número.
+  const chaveEp = (temporada, n) => `${temporada}|${n}`;
+  const ordemEp = (a, b) => String(a.temporada).localeCompare(String(b.temporada)) || a.n - b.n;
+  // "2026/27" -> "2027/28" (quando a planilha ainda não cita a temporada nova).
+  const proximaTemporada = t => { const m = String(t).match(/^(\d{4})\/(\d{2})$/); return m ? `${+m[1] + 1}/${pad2((+m[2] + 1) % 100)}` : ''; };
+  // Linhas sem Temporada: herdam a da linha anterior; quando o número do episódio (ou do jogo)
+  // volta a diminuir (EP 34 -> EP 01), é a temporada seguinte. Temporada preenchida sempre vence.
+  function inferirTemporadas(linhas, numeroDe, explicitaDe, ordem) {
+    let atual = ordem[0] || '', ultimo = null;
+    return linhas.map(r => {
+      const ex = explicitaDe(r), n = numeroDe(r);
+      if (ex) atual = ex;
+      else if (n != null && ultimo != null && n < ultimo) {
+        const i = ordem.indexOf(atual);
+        atual = ordem[i + 1] || proximaTemporada(atual) || atual;
+      }
+      if (n != null) ultimo = n;
+      return atual;
+    });
+  }
+  function mergeVideos(episodes, videos, ordem) {
+    episodes.forEach(e => { e.k = chaveEp(e.temporada, e.n); });
     if (!videos || !Array.isArray(videos.videos)) return episodes;
-    const byN = new Map(episodes.map(e => [e.n, e]));
-    videos.videos.forEach(v => {
-      if (v.episodio == null || !v.id) return;
-      let e = byN.get(v.episodio);
+    const byK = new Map(episodes.map(e => [e.k, e]));
+    const porVideo = new Map(episodes.filter(e => ytId(e.link)).map(e => [ytId(e.link), e]));
+    // Vídeo já ligado a um episódio da planilha (pelo link) diz a temporada; os outros seguem a ordem
+    // de publicação, e o número voltando a diminuir marca a temporada seguinte.
+    let temporada = ordem[0] || '', ultimo = null;
+    const lista = videos.videos.filter(v => v.episodio != null && v.id)
+      .sort((a, b) => String(a.publicado || '').localeCompare(String(b.publicado || '')));
+    lista.forEach(v => {
+      let e = porVideo.get(v.id);
+      if (e) temporada = e.temporada;
+      else {
+        if (ultimo != null && v.episodio < ultimo) temporada = ordem[ordem.indexOf(temporada) + 1] || proximaTemporada(temporada) || temporada;
+        e = byK.get(chaveEp(temporada, v.episodio));
+      }
+      ultimo = v.episodio;
       if (!e) {
-        e = { n: v.episodio, temporada: temporadaPadrao, titulo: '', data: '', link: '', resumo: '' };
-        byN.set(e.n, e);
+        e = { n: v.episodio, temporada, k: chaveEp(temporada, v.episodio), titulo: '', data: '', link: '', resumo: '' };
+        byK.set(e.k, e);
       }
       if (!e.link) e.link = `https://www.youtube.com/watch?v=${v.id}`;
       if (!e.titulo) e.titulo = isIntro(e) ? cleanTitle(v.titulo).replace(/^hist[oó]rias em campo\s*[:\-–]\s*/i, '') : cleanTitle(v.titulo);
       if (!e.data && v.publicado) e.data = new Date(v.publicado).toLocaleDateString('pt-BR');
       if (v.publicado && e.videoMs == null) e.videoMs = Date.parse(v.publicado);
     });
-    return [...byN.values()].sort((a, b) => a.n - b.n);
+    return [...byK.values()].sort(ordemEp);
   }
 
   // ---------- modelo ----------
@@ -159,42 +191,59 @@
     const clube = String(cfg.clube || 'Meu clube');
     const liga = String(cfg.competicaoliga || '');
 
-    const todosEpisodios = mergeVideos(sheet(wb, 'Episodios')
-      .map(r => ({ n: num(r.episodio), temporada: season(r.temporada), titulo: cleanTitle(r.titulo), data: fmtDate(r.data), estreia: quandoEstreia(r.data, serie), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
+    // Temporadas citadas na planilha, em ordem; a primeira vale para linhas antigas sem Temporada.
+    const linhasEp = sheet(wb, 'Episodios'), linhasJogos = sheet(wb, 'Jogos'), linhasTransf = sheet(wb, 'Transferencias');
+    const ordem = [...new Set([...linhasEp, ...linhasJogos, ...linhasTransf].map(r => season(r.temporada))
+      .concat(season(cfg.temporadaatual)).filter(Boolean))].sort();
+    const primeiraTemporada = ordem[0] || '';
+    const explicita = r => season(r.temporada);
+
+    const tempEp = inferirTemporadas(linhasEp, r => num(r.episodio), explicita, ordem);
+    const todosEpisodios = mergeVideos(linhasEp
+      .map((r, i) => ({ n: num(r.episodio), temporada: tempEp[i], titulo: cleanTitle(r.titulo), data: fmtDate(r.data), estreia: quandoEstreia(r.data, serie), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
       .filter(e => e.n != null)
-      .sort((a, b) => a.n - b.n), videos, season(cfg.temporadaatual));
+      .sort(ordemEp), videos, ordem);
 
     // Anti-spoiler: um episódio só "existe" no site depois da estreia. Vale a Data (com hora) da aba
     // Episodios; sem Data, vale o vídeo já publicado no canal. Sem nenhum dos dois, fica escondido.
     const agora = Date.now();
     const liberado = e => isIntro(e) || (e.estreia != null ? e.estreia <= agora : e.videoMs != null && e.videoMs <= agora);
     const episodes = todosEpisodios.filter(liberado);
-    const epsLiberados = new Set(episodes.map(e => e.n));
-    const epOk = ep => ep == null || epsLiberados.has(ep);
+    const epsLiberados = new Set(episodes.map(e => e.k));
+    const epOk = (temporada, ep) => ep == null || epsLiberados.has(chaveEp(temporada, ep));
     const aguardando = todosEpisodios.filter(e => !liberado(e));
-    const epSeason = new Map(todosEpisodios.map(e => [e.n, e.temporada]));
 
-    const games = sheet(wb, 'Jogos')
-      .map(r => {
-        const gp = num(r.golspro), gc = num(r.golscontra), ep = num(r.episodio);
+    const tempJogos = inferirTemporadas(linhasJogos, r => num(r.episodio), explicita, ordem);
+    const todosJogos = linhasJogos
+      .map((r, i) => {
+        const gp = num(r.golspro), gc = num(r.golscontra), ep = num(r.episodio), temporada = tempJogos[i];
         return {
-          id: num(r.jogo), ep, temporada: season(r.temporada) || epSeason.get(ep) || '',
+          id: num(r.jogo), ep, temporada, k: chaveEp(temporada, ep),
           comp: String(r.competicao || ''), rodada: r.rodada, adv: String(r.adversario || ''),
           casa: norm(r.local) !== 'fora', gp, gc,
           res: gp == null || gc == null ? null : gp > gc ? 'V' : gp === gc ? 'E' : 'D',
           gols: []
         };
       })
-      .filter(g => g.id != null && g.res && epOk(g.ep))
-      .sort((a, b) => a.id - b.id);
+      .filter(g => g.id != null);
+    const games = todosJogos
+      .filter(g => g.res && epOk(g.temporada, g.ep))
+      .sort((a, b) => String(a.temporada).localeCompare(String(b.temporada)) || a.id - b.id);
 
-    const byId = new Map(games.map(g => [g.id, g]));
+    // Gols apontam para o número do jogo. Se a numeração dos jogos segue de uma temporada para a
+    // outra (recomendado), o número basta; se recomeçar, vale a Temporada da aba Gols (ou a ordem das linhas).
+    const idsRepetidos = new Set(todosJogos.map(g => g.id)).size < todosJogos.length;
+    const chaveJogo = (temporada, id) => idsRepetidos ? `${temporada}#${id}` : String(id);
+    const byId = new Map(games.map(g => [chaveJogo(g.temporada, g.id), g]));
     // Jogos de episódios que ainda não estrearam: os gols deles ficam escondidos sem gerar aviso.
-    const jogosOcultos = new Set(sheet(wb, 'Jogos').filter(r => !epOk(num(r.episodio))).map(r => num(r.jogo)));
+    const jogosOcultos = new Set(todosJogos.filter(g => !epOk(g.temporada, g.ep)).map(g => chaveJogo(g.temporada, g.id)));
     const warnings = [];
-    sheet(wb, 'Gols').forEach(r => {
-      const g = byId.get(num(r.jogo));
-      if (!g) { if (r.autor && !jogosOcultos.has(num(r.jogo))) warnings.push(`Gol de ${r.autor} aponta para o jogo ${r.jogo}, que não existe na aba Jogos.`); return; }
+    const linhasGols = sheet(wb, 'Gols');
+    const tempGols = idsRepetidos ? inferirTemporadas(linhasGols, r => num(r.jogo), explicita, ordem) : [];
+    linhasGols.forEach((r, i) => {
+      const kj = chaveJogo(tempGols[i], num(r.jogo));
+      const g = byId.get(kj);
+      if (!g) { if (r.autor && !jogosOcultos.has(kj)) warnings.push(`Gol de ${r.autor} aponta para o jogo ${r.jogo}, que não existe na aba Jogos.`); return; }
       if (r.autor) g.gols.push({ autor: String(r.autor), assist: String(r.assistencia || ''), minuto: parseMinute(r.minuto) });
     });
     games.forEach(g => {
@@ -202,18 +251,22 @@
       if (g.gols.length !== g.gp) warnings.push(`Jogo ${g.id} (${g.adv}): placar com ${plural(g.gp, 'gol', 'gols')}, mas ${g.gols.length} registrado(s) na aba Gols.`);
     });
 
+    // Classificação por temporada + episódio (M.tables usa a chave "2026/27|10").
     const tables = new Map();
-    sheet(wb, 'Classificacao').forEach(r => {
-      const ep = num(r.episodio);
-      if (ep == null || !r.time || !epOk(ep)) return;
+    const linhasTab = sheet(wb, 'Classificacao');
+    const tempTab = inferirTemporadas(linhasTab, r => num(r.episodio), explicita, ordem);
+    const tableEps = [];
+    linhasTab.forEach((r, i) => {
+      const ep = num(r.episodio), temporada = tempTab[i], k = chaveEp(temporada, ep);
+      if (ep == null || !r.time || !epOk(temporada, ep)) return;
       const row = { pos: num(r.posicao), time: String(r.time), j: num(r.j) || 0, v: num(r.v) || 0, e: num(r.e) || 0, d: num(r.d) || 0, gp: num(r.gp) || 0, gc: num(r.gc) || 0 };
       row.pts = row.v * 3 + row.e;
       row.sg = row.gp - row.gc;
-      if (!tables.has(ep)) tables.set(ep, []);
-      tables.get(ep).push(row);
+      if (!tables.has(k)) { tables.set(k, []); tableEps.push({ temporada, n: ep, k }); }
+      tables.get(k).push(row);
     });
     tables.forEach(t => t.sort((a, b) => (a.pos ?? 99) - (b.pos ?? 99)));
-    const tableEps = [...tables.keys()].sort((a, b) => a - b);
+    tableEps.sort(ordemEp);
 
     // Escudos e estádios: aba Clubes (se existir) tem prioridade sobre o que a automação encontrou.
     const clubes = new Map();
@@ -248,26 +301,34 @@
     // Origem: "Base" (cria da base), "Contratação" (reforço) ou vazio/"Elenco inicial".
     const origemTipo = v => { const n = norm(v); return n.startsWith('base') ? 'base' : /^(contrat|reforc|emprest)/.test(n) ? 'reforco' : ''; };
 
+    // Temporada de cada transferência (coluna Temporada; vazia segue a ordem das linhas).
+    const tempTransf = inferirTemporadas(linhasTransf, r => num(r.episodio), explicita, ordem);
+    // Temporada da chegada no Elenco: coluna Temporada (opcional); senão a da transferência de chegada
+    // do jogador; senão a primeira temporada (elenco inicial e base antiga).
+    const chegadaTransf = new Map();
+    linhasTransf.forEach((r, i) => { if (r.jogador && !norm(r.tipo).startsWith('sa')) chegadaTransf.set(norm(r.jogador), tempTransf[i]); });
+
     // Elenco = jogadores do elenco atual (até o último episódio).
     const elenco = new Map();
     sheet(wb, 'Elenco').forEach(r => {
       // Reforço ou cria da base que chega num episódio ainda não lançado só aparece depois da estreia.
       const chegada = num(r.chegada);
-      if (chegada != null && chegada < 1000 && !epOk(chegada)) return;
+      const chegadaTemp = season(r.temporada) || chegadaTransf.get(norm(r.jogador)) || primeiraTemporada;
+      if (chegada != null && chegada < 1000 && !epOk(chegadaTemp, chegada)) return;
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
-        origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida'),
+        origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), chegadaTemp, saida: epNum(r.saida, r.jogador, 'Saida'),
         ...situacao(r), situacaoManual: !!situacao(r).situacao, doElenco: true, foto: String(r.foto || '').trim() || fotosMap.get(norm(r.jogador)) || '', fotoReserva: fotosMap.get(norm(r.jogador)) || ''
       });
     });
 
     // Transferências: chegadas e saídas por temporada.
     // Posição, país e foto vêm da própria aba se existirem; senão, do Elenco.
-    const transfers = sheet(wb, 'Transferencias')
-      .map(r => {
+    const transfers = linhasTransf
+      .map((r, i) => {
         const ep = num(r.episodio), e = elenco.get(norm(r.jogador)) || {};
         return {
-          temporada: season(r.temporada) || epSeason.get(ep) || season(cfg.temporadaatual), ep,
+          temporada: tempTransf[i], ep,
           tipo: norm(r.tipo).startsWith('sa') ? 'saida' : 'chegada',
           jogador: String(r.jogador || ''), pos: String(r.posicao || e.pos || ''), idade: num(r.idade), nac: String(r.nacionalidade || e.nac || ''),
           clube: String(r.clube || ''), valor: parseMoney(r.valor), valorTexto: String(r.valor ?? ''), obs: String(r.observacao || ''),
@@ -275,11 +336,11 @@
         };
       })
       .filter(t => {
-        if (!epOk(t.ep)) return false; // transferência de episódio ainda não lançado
+        if (!epOk(t.temporada, t.ep)) return false; // transferência de episódio ainda não lançado
         if (!t.jogador) warnings.push(`Transferências: há uma ${t.tipo === 'saida' ? 'saída' : 'chegada'}${t.ep != null ? ` do EP ${t.ep}` : ''}${t.clube ? ` (${t.clube})` : ''} sem o nome do jogador.`);
         return t.jogador;
       })
-      .sort((a, b) => (a.ep ?? 0) - (b.ep ?? 0));
+      .sort((a, b) => String(a.temporada).localeCompare(String(b.temporada)) || (a.ep ?? 0) - (b.ep ?? 0));
 
     // Cada transferência, em ordem de episódio, atualiza a situação do jogador (reforço, emprestado, vendido).
     // A coluna Situacao do Elenco, quando preenchida, tem a palavra final.
@@ -297,8 +358,9 @@
       if (!p.foto) p.foto = t.foto;
       if (t.tipo === 'chegada') {
         if (!p.origem) p.origem = 'reforco';
-        if (p.chegada == null) p.chegada = t.ep;
-        if (!p.situacaoManual) { p.situacao = ''; p.situacaoLabel = ''; p.saida = null; } // voltou ao clube
+        if (p.chegada == null) { p.chegada = t.ep; p.chegadaTemp = t.temporada; }
+        if (!p.chegadaTemp) p.chegadaTemp = t.temporada;
+        if (!p.situacaoManual) { p.situacao = ''; p.situacaoLabel = ''; p.saida = null; p.saidaTemp = ''; } // voltou ao clube
       } else if (saidaFutura(t)) {
         // Venda fechada para outra temporada: segue no elenco até lá (ex.: "Sai na temporada 27/28").
         p.saidaFutura = saidaFutura(t);
@@ -308,6 +370,7 @@
         p.situacao = emprestimo ? 'emprestado' : 'saiu';
         p.situacaoLabel = emprestimo ? 'Emprestado' : t.valor ? 'Vendido' : 'Saiu';
         p.saida = t.ep;
+        p.saidaTemp = t.temporada;
       }
       elenco.set(k, p);
     });
@@ -336,10 +399,17 @@
       imagem: String(r.imagem || ''), atual: num(r.atual), alvo: num(r.alvo), temporada: season(r.temporada),
       regra: norm(r.tipo).startsWith('regra'), chave: norm(r.chave)
     })).filter(m => m.meta);
+    // Meta sem Temporada é da primeira temporada (as metas novas levam a temporada delas);
+    // regra sem Temporada vale para a carreira toda.
+    metas.forEach(m => { if (!m.temporada && !m.regra) m.temporada = primeiraTemporada; });
     const titulos = sheet(wb, 'Titulos').map(r => ({ temporada: season(r.temporada), comp: String(r.competicao || ''), obs: String(r.observacao || '') })).filter(t => t.comp);
 
-    const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada), ...transfers.map(t => t.temporada)].filter(Boolean))];
-    const temporadaAtual = season(cfg.temporadaatual) || seasons[seasons.length - 1] || '';
+    // Temporada atual = a mais recente com episódio já lançado. Assim o site só muda de temporada
+    // quando o EP 01 dela estreia, mesmo que a aba Clube já diga a temporada nova.
+    const comEpisodio = episodes.filter(e => !isIntro(e)).map(e => e.temporada).filter(Boolean).sort();
+    const temporadaAtual = comEpisodio[comEpisodio.length - 1] || season(cfg.temporadaatual) || primeiraTemporada;
+    const seasons = [...new Set([...episodes.map(e => e.temporada), ...games.map(g => g.temporada), ...transfers.map(t => t.temporada), temporadaAtual].filter(Boolean))]
+      .filter(s => s <= temporadaAtual).sort();
     // Nome, logo, chamada e agenda vêm da série (dados/series.json).
     const temporadaInfo = serie || {};
     // De onde vêm a campanha e os gols pró/contra do Início: "tabela" (classificação do jogo,
@@ -388,7 +458,14 @@
   }
 
   const scoreline = (M, g) => g.casa ? `${M.clube} ${g.gp} x ${g.gc} ${g.adv}` : `${g.adv} ${g.gc} x ${g.gp} ${M.clube}`;
-  const rangeLabel = best => best ? (best[0].ep === best[1].ep ? `EP ${best[0].ep}` : `EP ${best[0].ep} ao ${best[1].ep}`) : '';
+  // "EP 3 ao 5"; com mais de uma temporada, diz qual ("EP 3 ao 5 · 2026/27" ou "EP 30 (2026/27) ao EP 2 (2027/28)").
+  function rangeLabel(best, M) {
+    if (!best) return '';
+    const [a, b] = best, multi = M && M.seasons.length > 1;
+    if (multi && a.temporada !== b.temporada) return `EP ${a.ep} (${a.temporada}) ao EP ${b.ep} (${b.temporada})`;
+    const base = a.ep === b.ep ? `EP ${a.ep}` : `EP ${a.ep} ao ${b.ep}`;
+    return multi ? `${base} · ${a.temporada}` : base;
+  }
 
   function topBy(map, key) {
     let top = null;
@@ -400,9 +477,9 @@
   function careerRecords(M) {
     const out = {};
     const w = streak(M.games, g => g.res === 'V');
-    out.seqvitorias = { valor: w.max, label: rangeLabel(w.best), atual: w.cur };
+    out.seqvitorias = { valor: w.max, label: rangeLabel(w.best, M), atual: w.cur };
     const u = streak(M.games, g => g.res !== 'D');
-    out.invencibilidade = { valor: u.max, label: rangeLabel(u.best), atual: u.cur };
+    out.invencibilidade = { valor: u.max, label: rangeLabel(u.best, M), atual: u.cur };
 
     let goleada = null;
     M.games.forEach(g => {
@@ -410,7 +487,7 @@
       const s = g.gp - g.gc;
       if (!goleada || s > goleada.gp - goleada.gc || (s === goleada.gp - goleada.gc && g.gp > goleada.gp)) goleada = g;
     });
-    out.maiorgoleada = { valor: goleada ? goleada.gp - goleada.gc : 0, label: goleada ? `${scoreline(M, goleada)} · EP ${goleada.ep}` : '' };
+    out.maiorgoleada = { valor: goleada ? goleada.gp - goleada.gc : 0, label: goleada ? `${scoreline(M, goleada)} · EP ${goleada.ep}${M.seasons.length > 1 ? ` · ${goleada.temporada}` : ''}` : '' };
 
     let bestG = null, bestA = null;
     M.seasons.forEach(s => {
@@ -436,9 +513,19 @@
     return { pct: real > 0 ? Math.round(carreira / real * 100) : 0, texto: `Faltam ${falta} para quebrar`, quebrado: false };
   }
 
-  function clubRow(M, ep) {
-    const t = M.tables.get(ep);
+  // Linha do clube na classificação de um episódio (chave "temporada|episódio").
+  function clubRow(M, k) {
+    const t = M.tables.get(k);
     return t ? t.find(r => norm(r.time) === norm(M.clube)) : null;
+  }
+  // Última classificação registrada numa temporada.
+  const ultimaTabela = (M, temporada) => M.tableEps.filter(x => x.temporada === temporada).pop() || null;
+  // Temporada escolhida no seletor (vale para Episódios, Metas, Jogos, Jogadores e Transferências).
+  // "todas" só onde faz sentido; começa sempre na temporada atual.
+  function temporadaEscolhida(M, aceitaTodas = true) {
+    const t = ui.temporada;
+    if (t === 'todas' && aceitaTodas) return 'todas';
+    return M.seasons.includes(t) ? t : M.temporadaAtual;
   }
 
   // ---------- componentes ----------
@@ -516,10 +603,10 @@
     const thumb = id
       ? `<a class="ep-thumb" href="${esc(e.link)}" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/${id}/maxresdefault.jpg" alt="Miniatura ${intro ? 'da intro' : `do episódio ${e.n}`}" loading="lazy" onload="if(this.naturalWidth<200)this.src='https://i.ytimg.com/vi/${id}/mqdefault.jpg'" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${id}/mqdefault.jpg'"><span class="play">▶ Assistir</span></a>`
       : `<div class="ep-thumb"><span class="ep-num">${intro ? 'INTRO' : `EP ${pad}`}</span>${e.link ? '' : '<span class="play">Vídeo em breve</span>'}</div>`;
-    const games = M.games.filter(g => g.ep === e.n);
-    const me = clubRow(M, e.n);
-    const prevEp = M.tableEps.filter(x => x < e.n).pop();
-    const prev = prevEp != null ? clubRow(M, prevEp) : null;
+    const games = M.games.filter(g => g.k === e.k);
+    const me = clubRow(M, e.k);
+    const prevEp = M.tableEps.filter(x => x.temporada === e.temporada && x.n < e.n).pop();
+    const prev = prevEp ? clubRow(M, prevEp.k) : null;
     const delta = me && prev ? prev.pos - me.pos : 0;
     const pos = me ? `<span class="ep-pos">Fim do episódio: <b>${ordinal(me.pos)} lugar</b> · ${me.pts} pts${delta ? ` <span class="delta ${delta > 0 ? 'sobe' : 'desce'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}</span>` : ''}</span>` : '';
     // Resultados escondidos por padrão: quem ainda não assistiu não leva spoiler.
@@ -528,7 +615,7 @@
           <div class="jogos">${games.map(g => gameCard(M, g)).join('')}</div>${pos}
         </details>`
       : (intro ? '' : '<p class="mudo">Sem jogos registrados.</p>');
-    return `<article class="card ep" id="ep-${e.n}">
+    return `<article class="card ep" id="ep-${esc(String(e.temporada).replace(/\D/g, ''))}-${e.n}">
       ${thumb}
       <div>
         <div class="ep-cabecalho"><small>${intro ? 'INTRO' : `EPISÓDIO ${pad}`}${e.temporada ? ' · ' + esc(e.temporada) : ''}</small><h3>${esc(e.titulo || (intro ? 'Intro da série' : `Episódio ${pad}`))}</h3></div>
@@ -541,9 +628,9 @@
 
   // Tabela no estilo do jogo: faixas de Acesso / Mata-mata / Rebaixamento.
   function tableCard(M) {
-    const ep = M.tableEps[M.tableEps.length - 1];
-    if (ep == null) return '<div class="card"><h3>Classificação</h3><p class="mudo">A tabela aparece quando houver classificação na planilha.</p></div>';
-    const z = M.zonas, table = M.tables.get(ep);
+    const ult = ultimaTabela(M, M.temporadaAtual);
+    if (!ult) return '<div class="card"><h3>Classificação</h3><p class="mudo">A tabela aparece quando houver classificação na planilha.</p></div>';
+    const ep = ult.n, z = M.zonas, table = M.tables.get(ult.k);
     const zona = pos => pos <= z.acesso ? 'Acesso' : pos === z.playoff ? 'Mata-mata: acesso' : pos >= z.reb ? 'Rebaixamento' : pos === z.playoffReb ? 'Mata-mata: rebaixamento' : '';
     let ultimaZona = null;
     const rows = table.map((r, i) => {
@@ -623,8 +710,11 @@
   function agendaBar(M) {
     const cfg = M.temporadaInfo.lancamentos;
     if (!cfg) return '';
+    // Número do próximo: o episódio já agendado na planilha (ex.: EP 01 da temporada nova);
+    // senão, o seguinte ao último lançado.
+    const agendado = M.aguardando.filter(e => !isIntro(e)).sort((a, b) => (a.estreia ?? Infinity) - (b.estreia ?? Infinity) || ordemEp(a, b))[0];
     const publicados = M.episodes.filter(e => !isIntro(e) && ytId(e.link));
-    const prox = (publicados.length ? publicados[publicados.length - 1].n : 0) + 1;
+    const prox = agendado ? agendado.n : (publicados.length ? publicados[publicados.length - 1].n : 0) + 1;
     const alvo = proximoLancamento(cfg);
     const off = (cfg.utc ?? -3) * 3600000;
     const local = alvo != null ? new Date(alvo + off) : null;
@@ -735,8 +825,8 @@
   // ---------- páginas ----------
   function pageInicio(M) {
     const season = M.games.filter(g => g.temporada === M.temporadaAtual);
-    const lastTableEp = M.tableEps[M.tableEps.length - 1];
-    const me = lastTableEp != null ? clubRow(M, lastTableEp) : null;
+    const lastTableEp = ultimaTabela(M, M.temporadaAtual);
+    const me = lastTableEp ? clubRow(M, lastTableEp.k) : null;
     const tab = M.campanhaFonte === 'tabela' ? me : null; // coluna campanha_fonte da aba Clube
     // Campanha e gols da temporada seguem a classificação do jogo (inclui partidas não gravadas);
     // sem tabela, usa os jogos registrados. Artilharia e assistências vêm sempre da aba Gols.
@@ -800,27 +890,42 @@
       </section>`;
   }
 
+  // Do mais novo para o mais antigo; em "Todas", com um título a cada temporada.
   function pageEpisodios(M) {
-    const eps = [...M.episodes].reverse();
-    return `<div class="secao-topo"><h2>Episódios</h2><span class="mudo">${plural(eps.filter(e => !isIntro(e)).length, 'episódio', 'episódios')}</span></div>
-      ${eps.map(e => episodeCard(M, e)).join('') || '<p class="estado">Nenhum episódio cadastrado.</p>'}`;
+    const t = temporadaEscolhida(M);
+    const eps = M.episodes.filter(e => t === 'todas' || e.temporada === t).reverse();
+    let html = '', tempAtual;
+    eps.forEach(e => {
+      if (t === 'todas' && M.seasons.length > 1 && e.temporada !== tempAtual) {
+        tempAtual = e.temporada;
+        html += `<h3 class="grupo-temporada">Temporada ${esc(e.temporada)}</h3>`;
+      }
+      html += episodeCard(M, e);
+    });
+    return `<div class="secao-topo"><div><h2>Episódios</h2><span class="mudo">${plural(eps.filter(e => !isIntro(e)).length, 'episódio', 'episódios')}${t !== 'todas' && M.seasons.length > 1 ? ` · temporada ${esc(t)}` : ''}</span></div>
+        ${seasonSelect(M)}</div>
+      ${html || '<p class="estado">Nenhum episódio lançado nesta temporada ainda.</p>'}`;
   }
 
   // Do último jogo para o primeiro, agrupados por episódio.
   function pageJogos(M) {
-    if (!M.games.length) return '<p class="estado">Nenhum jogo cadastrado.</p>';
-    const games = [...M.games].reverse();
-    const v = M.games.filter(g => g.res === 'V').length, e = M.games.filter(g => g.res === 'E').length, d = M.games.filter(g => g.res === 'D').length;
+    const t = temporadaEscolhida(M);
+    const lista = M.games.filter(g => t === 'todas' || g.temporada === t);
+    const topo = extra => `<div class="secao-topo"><div><h2>Jogos</h2>${extra}</div>${seasonSelect(M)}</div>`;
+    if (!lista.length) return `${topo('')}<p class="estado">Nenhum jogo registrado nesta temporada ainda.</p>`;
+    const games = [...lista].reverse();
+    const v = lista.filter(g => g.res === 'V').length, e = lista.filter(g => g.res === 'E').length, d = lista.filter(g => g.res === 'D').length;
+    const multi = t === 'todas' && M.seasons.length > 1;
     let html = '', epAtual;
     games.forEach(g => {
-      if (g.ep !== epAtual) {
-        epAtual = g.ep;
-        const ep = M.episodes.find(x => x.n === g.ep);
-        html += `<h3 class="grupo-ep"><span>EP ${pad2(g.ep)}</span>${ep && ep.titulo ? esc(ep.titulo) : ''}</h3>`;
+      if (g.k !== epAtual) {
+        epAtual = g.k;
+        const ep = M.episodes.find(x => x.k === g.k);
+        html += `<h3 class="grupo-ep"><span>EP ${pad2(g.ep)}${multi ? ` · ${esc(g.temporada)}` : ''}</span>${ep && ep.titulo ? esc(ep.titulo) : ''}</h3>`;
       }
       html += matchCard(M, g);
     });
-    return `<div class="secao-topo"><h2>Jogos</h2><span class="mudo">${plural(M.games.length, 'jogo', 'jogos')} · ${v}V ${e}E ${d}D</span></div>
+    return `${topo(`<span class="mudo">${plural(lista.length, 'jogo', 'jogos')} · ${v}V ${e}E ${d}D</span>`)}
       <p class="aviso-spoiler">Esta página mostra todos os resultados até o último episódio lançado.</p>
       <div class="lista-partidas">${html}</div>`;
   }
@@ -832,6 +937,7 @@
     if (p.situacao === 'emprestado') tags.push(`<span class="tag emprestado"${p.saida != null ? ` title="Emprestado no EP ${p.saida}"` : ''}>Emprestado</span>`);
     if (p.saidaFutura && !p.situacao) tags.push(`<span class="tag de-saida"${p.destinoFuturo ? ` title="Vendido: vai para ${esc(p.destinoFuturo)}"` : ''}>Sai em ${esc(p.saidaFutura)}</span>`);
     if (p.situacao === 'saiu') tags.push(`<span class="tag">${esc(p.situacaoLabel)}${p.saida != null ? ` no EP ${p.saida}` : ''}</span>`);
+    if (p.situacao === 'saiu-antes') tags.push(`<span class="tag"${p.saidaTemp ? ` title="Saiu em ${esc(p.saidaTemp)}"` : ''}>Saiu</span>`);
     return tags.length ? ` ${tags.join(' ')}` : '';
   }
 
@@ -839,13 +945,14 @@
   // Quem saiu do clube não aparece na lista (continua contando nas estatísticas e em Transferências).
   const MOSTRAR = { todos: ['Todos', () => true], atual: ['No clube', p => !p.situacao], emprestados: ['Emprestados', p => p.situacao === 'emprestado'] };
   const ui = {
-    sort: 'g', dir: -1, temporada: null, mostrar: 'todos', tempTransf: null,
+    sort: 'g', dir: -1, temporada: null, mostrar: 'todos',
     transf: { chegadas: { k: 'ep', dir: -1 }, saidas: { k: 'ep', dir: -1 } }
   };
   const ordemPosicao = p => { const i = POS_ORDEM.indexOf(norm(p)); return i < 0 ? 99 : i; };
   // Ordena transferências por jogador, posição, clube, valor ou episódio; vazios sempre no fim.
   function ordenarTransf(lista, { k, dir }) {
-    const val = t => k === 'jogador' ? t.jogador : k === 'clube' ? t.clube : k === 'pos' ? ordemPosicao(t.pos) : k === 'valor' ? t.valor : t.ep;
+    const val = t => k === 'jogador' ? t.jogador : k === 'clube' ? t.clube : k === 'pos' ? ordemPosicao(t.pos) : k === 'valor' ? t.valor
+      : t.ep == null ? null : (parseInt(t.temporada, 10) || 0) * 1000 + t.ep; // episódio, dentro da ordem das temporadas
     return [...lista].sort((a, b) => {
       const va = val(a), vb = val(b);
       if ((va == null || va === '') !== (vb == null || vb === '')) return va == null || va === '' ? 1 : -1;
@@ -853,16 +960,43 @@
       return dir * c || (b.ep ?? 0) - (a.ep ?? 0);
     });
   }
-  function seasonSelect(id, value, M) {
-    return `<label>Temporada <select id="${id}"><option value="todas" ${value === 'todas' ? 'selected' : ''}>Todas</option>${M.seasons.map(s => `<option ${s === value ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>`;
+  // Seletor de temporada (um só para todas as abas): só aparece quando já houver mais de uma.
+  function seasonSelect(M, aceitaTodas = true) {
+    if (M.seasons.length < 2) return '';
+    const valor = temporadaEscolhida(M, aceitaTodas);
+    const opcoes = [...M.seasons].reverse().map(s => `<option value="${esc(s)}" ${s === valor ? 'selected' : ''}>${esc(s)}${s === M.temporadaAtual ? ' (atual)' : ''}</option>`).join('');
+    return `<label class="seletor-temporada">Temporada <select id="sel-temp">${opcoes}${aceitaTodas ? `<option value="todas" ${valor === 'todas' ? 'selected' : ''}>Todas</option>` : ''}</select></label>`;
+  }
+
+  // Elenco de uma temporada passada: quem já tinha chegado e ainda não tinha saído (ou saiu nela).
+  function noElencoEm(p, t) {
+    if (p.chegadaTemp && p.chegadaTemp > t) return false;
+    if (p.situacao === 'saiu' || p.situacao === 'emprestado') return !p.saidaTemp || p.saidaTemp >= t;
+    return true;
   }
 
   function pageJogadores(M) {
-    if (ui.temporada == null) ui.temporada = M.temporadaAtual || 'todas';
-    const games = ui.temporada === 'todas' ? M.games : M.games.filter(g => g.temporada === ui.temporada);
+    const t = temporadaEscolhida(M);
+    const atual = t === M.temporadaAtual;
+    const games = t === 'todas' ? M.games : M.games.filter(g => g.temporada === t);
     const st = playerStats(M, games);
-    M.elenco.forEach((e, k) => { if (!st.has(k)) st.set(k, { ...e, g: 0, a: 0 }); });
-    const list = [...st.values()].map(p => ({ ...p, ga: p.g + p.a }));
+    // Temporada atual: elenco de hoje. Temporada passada: quem estava no clube nela. Todas: todo mundo.
+    M.elenco.forEach((e, k) => {
+      if (st.has(k)) return;
+      if (atual ? true : t === 'todas' ? e.doElenco : noElencoEm(e, t)) st.set(k, { ...e, g: 0, a: 0 });
+    });
+    // Fora da temporada atual, a situação de hoje (emprestado, vendido) não vale: só a chegada e
+    // a saída que aconteceram naquela temporada aparecem como etiqueta.
+    const naquela = p => {
+      // "Reforço" só na temporada em que o jogador chegou.
+      if (atual) return p.origem === 'reforco' && p.chegadaTemp && p.chegadaTemp !== t ? { ...p, origem: '' } : p;
+      const q = { ...p, saidaFutura: '' };
+      if (t === 'todas') return { ...q, situacao: p.situacao === 'saiu' ? 'saiu-antes' : '', situacaoLabel: '' };
+      if (p.origem === 'reforco' && p.chegadaTemp !== t) q.origem = '';
+      if (p.saidaTemp === t && p.situacao) return q;
+      return { ...q, situacao: '', situacaoLabel: '' };
+    };
+    const list = [...st.values()].map(p => ({ ...naquela(p), ga: p.g + p.a }));
     const key = ui.sort, dir = ui.dir;
     // Posição segue a ordem do campo (goleiro → ataque); vazios vão sempre para o fim.
     const ordemPos = p => { const i = POS_ORDEM.indexOf(norm(p)); return i < 0 ? 99 : i; };
@@ -879,8 +1013,8 @@
     const [tg, ta, tga] = [top('g'), top('a'), top('ga')];
     const base = list.filter(p => p.origem === 'base' && p.situacao !== 'saiu');
     const th = (k, label, cls = '') => `<th data-sort="${k}" class="${cls} ${ui.sort === k ? 'ordenado' : ''}">${label}${ui.sort === k ? (ui.dir < 0 ? ' ▾' : ' ▴') : ''}</th>`;
-    return `<div class="secao-topo"><h2>Jogadores</h2>
-        <div class="filtros">${seasonSelect('sel-temp', ui.temporada, M)}
+    return `<div class="secao-topo"><div><h2>Jogadores</h2>${M.seasons.length > 1 ? `<span class="mudo">${t === 'todas' ? 'todas as temporadas' : `temporada ${esc(t)}`}</span>` : ''}</div>
+        <div class="filtros">${seasonSelect(M)}
         <label>Mostrar <select id="sel-mostrar">${Object.entries(MOSTRAR).map(([k, [label]]) => `<option value="${k}" ${k === ui.mostrar ? 'selected' : ''}>${label}</option>`).join('')}</select></label></div>
       </div>
       <div class="grid grid-4" style="margin-bottom:16px">
@@ -891,9 +1025,9 @@
       </div>
       <div class="tabela-wrap"><table>
         <thead><tr>${th('nome', 'Jogador', 'esq')}${th('pos', 'Pos')}${th('nac', 'País', 'esq')}${th('g', 'Gols')}${th('a', 'Assist.')}${th('ga', 'G+A')}</tr></thead>
-        <tbody>${list.filter(p => p.situacao !== 'saiu').filter((MOSTRAR[ui.mostrar] || MOSTRAR.todos)[1]).map(p => `<tr class="${p.situacao === 'saiu' ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
+        <tbody>${list.filter(p => !atual || p.situacao !== 'saiu').filter((MOSTRAR[ui.mostrar] || MOSTRAR.todos)[1]).map(p => `<tr class="${p.situacao === 'saiu' ? 'fora' : ''}"><td class="esq"><span class="jogador">${avatar(p)}<span>${esc(p.nome)}${playerTags(p)}</span></span></td><td class="mudo">${esc(p.pos)}</td><td class="esq mudo">${esc(p.nac)}</td><td class="pts">${p.g}</td><td>${p.a}</td><td>${p.ga}</td></tr>`).join('')}</tbody>
       </table></div>
-      ${nationalities(M)}`;
+      ${atual ? nationalities(M) : ''}`;
   }
 
   function destaque(rotulo, p, key) {
@@ -917,8 +1051,10 @@
   }
 
   function pageTransferencias(M) {
-    if (ui.tempTransf == null) ui.tempTransf = M.temporadaAtual || 'todas';
-    const lista = ui.tempTransf === 'todas' ? M.transfers : M.transfers.filter(t => t.temporada === ui.tempTransf);
+    const temp = temporadaEscolhida(M);
+    const multi = temp === 'todas' && M.seasons.length > 1;
+    const lista = temp === 'todas' ? M.transfers : M.transfers.filter(t => t.temporada === temp);
+    const epRotulo = t => t.ep != null ? `EP ${pad2(t.ep)}${multi ? ` · ${esc(t.temporada)}` : ''}` : (multi ? esc(t.temporada) : '');
     const chegadas = ordenarTransf(lista.filter(t => t.tipo === 'chegada'), ui.transf.chegadas);
     const saidas = ordenarTransf(lista.filter(t => t.tipo === 'saida'), ui.transf.saidas);
     const seta = (grupo, k) => ui.transf[grupo].k === k ? (ui.transf[grupo].dir < 0 ? ' ▾' : ' ▴') : '';
@@ -939,7 +1075,7 @@
         <span class="mudo">${[t.pos, t.idade != null ? `${t.idade} anos` : '', t.nac].filter(Boolean).map(esc).join(' · ')}</span></div></div>
       <div class="chegada-linha"><small>Veio do</small>${clubeLinha(t.clube)}</div>
       <div class="chegada-linha"><small>Valor pago</small><strong class="valor">${valor(t)}</strong>${obs(t)}</div>
-      ${t.ep != null ? `<span class="ep-tag">EP ${pad2(t.ep)}</span>` : ''}
+      ${epRotulo(t) ? `<span class="ep-tag">${epRotulo(t)}</span>` : ''}
     </article>`).join('');
 
     const linhas = saidas.map(t => `<tr>
@@ -947,9 +1083,9 @@
       <td class="mudo">${esc(t.pos)}</td>
       <td class="esq">${clubeLinha(t.clube)}</td>
       <td class="pts">${valor(t)}</td>
-      <td class="mudo">${t.ep != null ? `EP ${pad2(t.ep)}` : ''}</td></tr>`).join('');
+      <td class="mudo">${epRotulo(t)}</td></tr>`).join('');
 
-    return `<div class="secao-topo"><h2>Transferências</h2>${seasonSelect('sel-transf', ui.tempTransf, M)}</div>
+    return `<div class="secao-topo"><div><h2>Transferências</h2>${M.seasons.length > 1 ? `<span class="mudo">${temp === 'todas' ? 'todas as temporadas' : `temporada ${esc(temp)}`}</span>` : ''}</div>${seasonSelect(M)}</div>
       <div class="grid grid-3" style="margin-bottom:8px">
         <div class="card stat"><small>Investido em chegadas</small><strong>${fmtMoney(gasto)}</strong><span>${plural(chegadas.length, 'chegada', 'chegadas')}</span></div>
         <div class="card stat"><small>Arrecadado com saídas</small><strong>${fmtMoney(receita)}</strong><span>${plural(saidas.length, 'saída', 'saídas')}</span></div>
@@ -972,7 +1108,8 @@
   const SUL_AMERICA = ['argentina', 'bolivia', 'brasil', 'chile', 'colombia', 'equador', 'paraguai', 'peru', 'uruguai', 'venezuela'];
   // Contagens automáticas pela coluna Chave da aba Metas.
   function metaAtual(M, m) {
-    if (m.chave === 'sulamericanos') return [...M.elenco.values()].filter(p => p.doElenco && !p.situacao && SUL_AMERICA.includes(norm(p.nac))).length;
+    // A contagem automática olha o elenco de hoje: só vale para meta da temporada atual.
+    if (m.chave === 'sulamericanos' && (!m.temporada || m.temporada === M.temporadaAtual)) return [...M.elenco.values()].filter(p => p.doElenco && !p.situacao && SUL_AMERICA.includes(norm(p.nac))).length;
     return m.atual;
   }
 
@@ -998,15 +1135,16 @@
   }
 
   function pageMetas(M) {
-    // Metas sem temporada valem para a temporada atual.
-    const todas = M.metas.filter(m => !m.temporada || m.temporada === M.temporadaAtual);
+    // Cada meta é de uma temporada; regras sem temporada valem para a carreira toda.
+    const t = temporadaEscolhida(M, false);
+    const todas = M.metas.filter(m => !m.temporada || m.temporada === t);
     const metas = todas.filter(m => !m.regra), regras = todas.filter(m => m.regra);
     const statusDe = m => { const a = metaAtual(M, m); return m.alvo != null && a != null && a >= m.alvo ? 'concluida' : statusCls(m.status); };
     const conta = c => metas.filter(m => statusDe(m) === c).length;
     const nome = M.temporadaInfo.nome ? `${esc(M.temporadaInfo.nome)} · ` : '';
-    return `<div class="secao-topo"><div><h2>Metas da temporada</h2><span class="mudo">${nome}${esc(M.temporadaAtual)}</span></div>
-        <span class="mudo">${conta('concluida')} concluídas · ${conta('andamento')} em andamento · ${conta('falhou')} não alcançadas</span></div>
-      ${metas.length ? `<div class="grid grid-3">${metas.map(m => metaCard(M, m)).join('')}</div>` : '<p class="estado">Cadastre as metas na aba Metas da planilha.</p>'}
+    return `<div class="secao-topo"><div><h2>Metas da temporada</h2><span class="mudo">${nome}${esc(t)}</span></div>
+        <div class="filtros">${seasonSelect(M, false)}<span class="mudo">${conta('concluida')} concluídas · ${conta('andamento')} em andamento · ${conta('falhou')} não alcançadas</span></div></div>
+      ${metas.length ? `<div class="grid grid-3">${metas.map(m => metaCard(M, m)).join('')}</div>` : `<p class="estado">${t === M.temporadaAtual ? 'Cadastre as metas desta temporada na aba Metas da planilha (coluna Temporada).' : 'Nenhuma meta registrada nesta temporada.'}</p>`}
       ${regras.length ? `<section class="secao"><div class="secao-topo"><h2>Regras da carreira</h2><span class="mudo">O que vale em toda a série</span></div>
         <div class="grid grid-3">${regras.map(m => metaCard(M, m)).join('')}</div></section>` : ''}`;
   }
@@ -1053,7 +1191,6 @@
   $app.addEventListener('change', ev => {
     if (ev.target.id === 'sel-temp') { ui.temporada = ev.target.value; render(); }
     if (ev.target.id === 'sel-mostrar') { ui.mostrar = ev.target.value; render(); }
-    if (ev.target.id === 'sel-transf') { ui.tempTransf = ev.target.value; render(); }
   });
   $app.addEventListener('click', ev => {
     const ts = ev.target.closest('[data-tsort]');
@@ -1116,7 +1253,7 @@
         const quando = e.estreia != null
           ? `libera em ${new Date(e.estreia).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
           : 'libera quando o vídeo estiver publicado no canal (ou preencha a Data com dia e hora na aba Episodios)';
-        avisos.push(`<div class="aviso aviso-info"><b>EP ${pad2(e.n)} aguardando estreia:</b> jogos, gols, tabela e transferências desse episódio estão escondidos do público; ${esc(quando)}.</div>`);
+        avisos.push(`<div class="aviso aviso-info"><b>EP ${pad2(e.n)}${e.temporada ? ` (${esc(e.temporada)})` : ''} aguardando estreia:</b> jogos, gols, tabela e transferências desse episódio estão escondidos do público; ${esc(quando)}.</div>`);
       });
     }
     $avisos.innerHTML = avisos.join('');

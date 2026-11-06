@@ -518,6 +518,10 @@ tr.fora td { opacity: .65; }
 
 /* ---------- transferências ---------- */
 .filtros { display: flex; gap: 10px; flex-wrap: wrap; }
+.filtros { align-items: center; }
+/* Título de cada temporada quando a lista mostra "Todas" */
+.grupo-temporada { font-family: "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; font-size: 22px; color: var(--primary); border-bottom: 2px solid var(--line); padding-bottom: 6px; margin: 26px 0 12px; }
+.grupo-temporada:first-child { margin-top: 4px; }
 .ordenar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ordenar small { color: var(--muted); margin-right: 2px; }
 .chip-ordem { font: 600 13px Inter, sans-serif; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
