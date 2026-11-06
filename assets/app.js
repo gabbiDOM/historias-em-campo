@@ -47,18 +47,38 @@
     if (v === '' || v == null) return null;
     const lanc = (serie && serie.lancamentos) || {};
     const off = (lanc.utc ?? -3) * 3600000;
-    const [hh, mm] = String(lanc.hora || '18:00').split(':').map(Number);
+    // Sem hora na planilha: usa o horário daquele dia da semana na agenda (ex.: domingo 15h, quarta 18h);
+    // dia fora da agenda (episódio extra, agenda antiga) usa a "hora" da série ou 18h.
+    const padrao = diaMs => {
+      const hora = horaDoDia(lanc, new Date(diaMs).getUTCDay()) || lanc.hora || '18:00';
+      const [hh, mm] = hora.split(':').map(Number);
+      return diaMs + ((hh || 0) * 60 + (mm || 0)) * 60000 - off;
+    };
     if (typeof v === 'number') {
-      let ms = Math.round((v - 25569) * 86400000);
-      if (Number.isInteger(v)) ms += ((hh || 0) * 60 + (mm || 0)) * 60000;
-      return ms - off;
+      const ms = Math.round((v - 25569) * 86400000);
+      return Number.isInteger(v) ? padrao(ms) : ms - off;
     }
     const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\D+(\d{1,2})\s*[:h]\s*(\d{2})?)?/);
     if (!m) return null;
     const ano = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
-    const H = m[4] != null ? Number(m[4]) : (hh || 0), Mi = m[4] != null ? Number(m[5] || 0) : (mm || 0);
-    return Date.UTC(ano, Number(m[2]) - 1, Number(m[1]), H, Mi) - off;
+    const dia = Date.UTC(ano, Number(m[2]) - 1, Number(m[1]));
+    return m[4] != null ? dia + (Number(m[4]) * 60 + Number(m[5] || 0)) * 60000 - off : padrao(dia);
   }
+  // Agenda da série: "dias" pode ser {"domingo":"15:00","quarta":"18:00"} (hora por dia)
+  // ou a forma antiga ["terça","sexta"] com uma "hora" única. diaSemana null = primeira hora da agenda.
+  const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  function agendaDias(lanc) {
+    const d = (lanc && lanc.dias) || [];
+    const pares = Array.isArray(d) ? d.map(nome => [nome, lanc.hora || '18:00']) : Object.entries(d);
+    return pares.map(([nome, hora]) => ({ i: DIAS.findIndex(x => norm(x) === norm(nome)), nome: DIAS.find(x => norm(x) === norm(nome)) || nome, hora: String(hora || '18:00') }))
+      .filter(x => x.i >= 0);
+  }
+  function horaDoDia(lanc, diaSemana) {
+    const lista = agendaDias(lanc);
+    const achado = diaSemana == null ? lista[0] : lista.find(x => x.i === diaSemana);
+    return achado ? achado.hora : (diaSemana == null && lanc && lanc.hora) || null;
+  }
+  const fmtHora = h => String(h).replace(/:00$/, 'h').replace(':', 'h');
   // Aceita 23, "23'", "45+2" ou "90 + 3"; ordem coloca acréscimos depois do minuto base.
   function parseMinute(v) {
     const m = String(v ?? '').replace(/\s|'/g, '').match(/^(\d{1,3})(?:\+(\d{1,2}))?$/);
@@ -567,42 +587,55 @@
   }
 
   // ---------- agenda de lançamentos ----------
-  const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   const NO_AR_MS = 60 * 60 * 1000; // por 1 hora depois do horário mostra "no ar"
 
-  // Próximo lançamento em ms (UTC), a partir de dias da semana + hora no fuso do canal.
+  // Próximo lançamento em ms (UTC). Se o próximo episódio já tem Data na planilha, vale ela;
+  // senão, o próximo dia/hora da agenda semanal, no fuso do canal.
   function proximoLancamento(cfg, agora = Date.now()) {
-    const dias = (cfg.dias || []).map(d => DIAS.findIndex(x => norm(x) === norm(d))).filter(i => i >= 0);
+    const marcado = MODEL && MODEL.aguardando
+      .filter(e => e.estreia != null && e.estreia + NO_AR_MS > agora)
+      .sort((a, b) => a.estreia - b.estreia)[0];
+    if (marcado) return marcado.estreia;
+    const dias = agendaDias(cfg);
     if (!dias.length) return null;
-    const [h, min] = String(cfg.hora || '18:00').split(':').map(Number);
     const off = (cfg.utc ?? -3) * 3600000;
     const local = new Date(agora + off); // "relógio" do canal lido via getUTC*
     for (let add = 0; add <= 7; add++) {
-      const d = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + add, h, min || 0));
-      const alvo = d.getTime() - off;
-      if (dias.includes(d.getUTCDay()) && alvo + NO_AR_MS > agora) return alvo;
+      const base = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + add);
+      const dia = dias.find(x => x.i === new Date(base).getUTCDay());
+      if (!dia) continue;
+      const [h, min] = dia.hora.split(':').map(Number);
+      const alvo = base + ((h || 0) * 60 + (min || 0)) * 60000 - off;
+      if (alvo + NO_AR_MS > agora) return alvo;
     }
     return null;
+  }
+
+  // "domingo às 15h e quarta às 18h" (ou "terça e sexta, às 18h" quando a hora é a mesma).
+  function textoAgenda(cfg) {
+    const dias = agendaDias(cfg);
+    const juntar = l => l.length > 1 ? `${l.slice(0, -1).join(', ')} e ${l[l.length - 1]}` : l.join('');
+    if (new Set(dias.map(d => d.hora)).size <= 1) return `toda ${juntar(dias.map(d => d.nome))}, às ${fmtHora(dias[0] ? dias[0].hora : '18:00')}`;
+    return `todo ${juntar(dias.map(d => `${d.nome} às ${fmtHora(d.hora)}`))}`.replace(/^todo (segunda|terça|quarta|quinta|sexta)/, 'toda $1');
   }
 
   // Faixa fina abaixo do destaque: próximo episódio, dia/hora e contagem regressiva.
   function agendaBar(M) {
     const cfg = M.temporadaInfo.lancamentos;
     if (!cfg) return '';
-    const nomes = (cfg.dias || []).join(' e ');
-    const hora = String(cfg.hora || '18:00').replace(/:00$/, 'h').replace(':', 'h');
     const publicados = M.episodes.filter(e => !isIntro(e) && ytId(e.link));
     const prox = (publicados.length ? publicados[publicados.length - 1].n : 0) + 1;
     const alvo = proximoLancamento(cfg);
     const off = (cfg.utc ?? -3) * 3600000;
-    const dia = alvo != null ? DIAS[new Date(alvo + off).getUTCDay()] : '';
+    const local = alvo != null ? new Date(alvo + off) : null;
+    const quando = local ? `${DIAS[local.getUTCDay()]}, ${fmtHora(`${pad2(local.getUTCHours())}:${pad2(local.getUTCMinutes())}`)}` : '';
     return `<div class="faixa-agenda">
       <span class="ponto-vivo"></span>
-      <span class="agenda-proximo">Próximo episódio · <b>EP ${pad2(prox)}</b>${dia ? ` · ${esc(dia)}, ${esc(hora)}` : ''}</span>
+      <span class="agenda-proximo">Próximo episódio · <b>EP ${pad2(prox)}</b>${quando ? ` · ${esc(quando)}` : ''}</span>
       <span class="contagem" data-contagem aria-live="off"><span class="contagem-rotulo">faltam</span>
         <span><b data-u="d">–</b><small>d</small></span><span><b data-u="h">–</b><small>h</small></span><span><b data-u="m">–</b><small>min</small></span><span><b data-u="s">–</b><small>s</small></span>
       </span>
-      <span class="agenda-regra">Novos episódios toda ${esc(nomes)}, às ${esc(hora)}</span>
+      <span class="agenda-regra">Novos episódios ${esc(textoAgenda(cfg))}</span>
     </div>`;
   }
 
@@ -616,6 +649,12 @@
       if (!box.isConnected) return clearInterval(contagemTimer);
       const alvo = proximoLancamento(cfg), agora = Date.now();
       if (alvo == null) return;
+      // Quem está com o site aberto na hora da estreia vê o episódio liberar sem recarregar.
+      if (ULTIMA_LEITURA && MODEL.aguardando.some(e => e.estreia != null && e.estreia <= agora)) {
+        MODEL = build(...ULTIMA_LEITURA);
+        applyBranding(MODEL);
+        return render();
+      }
       if (alvo <= agora) { box.classList.add('no-ar'); box.innerHTML = '<span class="contagem-rotulo">no ar agora!</span>'; return; }
       let s = Math.floor((alvo - agora) / 1000);
       const v = { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
@@ -996,6 +1035,7 @@
 
   // ---------- roteador ----------
   let MODEL = null;
+  let ULTIMA_LEITURA = null; // planilha e arquivos já lidos, para refazer o modelo na hora de uma estreia
   const pages = { inicio: pageInicio, episodios: pageEpisodios, metas: pageMetas, jogos: pageJogos, jogadores: pageJogadores, transferencias: pageTransferencias, recordes: pageRecordes };
   let lastPage = null;
 
@@ -1099,7 +1139,8 @@
       if (!res.ok) throw new Error(`Não foi possível baixar ${dataUrl} (HTTP ${res.status}).`);
       const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
       const [videos, fotos, clubesJson, treinador, fotosCorpo] = await extrasReq;
-      MODEL = build(wb, { videos, fotos, clubesJson, treinador, fotosCorpo, serie, series: cadastro.series.map(s => ({ ...s, atual: s.id === cadastro.atual })) });
+      ULTIMA_LEITURA = [wb, { videos, fotos, clubesJson, treinador, fotosCorpo, serie, series: cadastro.series.map(s => ({ ...s, atual: s.id === cadastro.atual })) }];
+      MODEL = build(...ULTIMA_LEITURA);
       applyBranding(MODEL);
       window.addEventListener('hashchange', render);
       render();
