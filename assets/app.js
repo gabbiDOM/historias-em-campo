@@ -41,6 +41,24 @@
     }
     return String(v || '');
   }
+  // Momento da estreia (ms UTC) a partir da coluna Data: aceita data do Sheets (com ou sem hora)
+  // ou texto "06/11/2026 18:00". Sem hora, usa o horário de lançamento da série; o fuso é o da série.
+  function quandoEstreia(v, serie) {
+    if (v === '' || v == null) return null;
+    const lanc = (serie && serie.lancamentos) || {};
+    const off = (lanc.utc ?? -3) * 3600000;
+    const [hh, mm] = String(lanc.hora || '18:00').split(':').map(Number);
+    if (typeof v === 'number') {
+      let ms = Math.round((v - 25569) * 86400000);
+      if (Number.isInteger(v)) ms += ((hh || 0) * 60 + (mm || 0)) * 60000;
+      return ms - off;
+    }
+    const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\D+(\d{1,2})\s*[:h]\s*(\d{2})?)?/);
+    if (!m) return null;
+    const ano = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+    const H = m[4] != null ? Number(m[4]) : (hh || 0), Mi = m[4] != null ? Number(m[5] || 0) : (mm || 0);
+    return Date.UTC(ano, Number(m[2]) - 1, Number(m[1]), H, Mi) - off;
+  }
   // Aceita 23, "23'", "45+2" ou "90 + 3"; ordem coloca acréscimos depois do minuto base.
   function parseMinute(v) {
     const m = String(v ?? '').replace(/\s|'/g, '').match(/^(\d{1,3})(?:\+(\d{1,2}))?$/);
@@ -107,6 +125,7 @@
       if (!e.link) e.link = `https://www.youtube.com/watch?v=${v.id}`;
       if (!e.titulo) e.titulo = isIntro(e) ? cleanTitle(v.titulo).replace(/^hist[oó]rias em campo\s*[:\-–]\s*/i, '') : cleanTitle(v.titulo);
       if (!e.data && v.publicado) e.data = new Date(v.publicado).toLocaleDateString('pt-BR');
+      if (v.publicado && e.videoMs == null) e.videoMs = Date.parse(v.publicado);
     });
     return [...byN.values()].sort((a, b) => a.n - b.n);
   }
@@ -120,11 +139,20 @@
     const clube = String(cfg.clube || 'Meu clube');
     const liga = String(cfg.competicaoliga || '');
 
-    const episodes = mergeVideos(sheet(wb, 'Episodios')
-      .map(r => ({ n: num(r.episodio), temporada: season(r.temporada), titulo: cleanTitle(r.titulo), data: fmtDate(r.data), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
+    const todosEpisodios = mergeVideos(sheet(wb, 'Episodios')
+      .map(r => ({ n: num(r.episodio), temporada: season(r.temporada), titulo: cleanTitle(r.titulo), data: fmtDate(r.data), estreia: quandoEstreia(r.data, serie), link: String(r.linkyoutube || ''), resumo: String(r.resumo || '') }))
       .filter(e => e.n != null)
       .sort((a, b) => a.n - b.n), videos, season(cfg.temporadaatual));
-    const epSeason = new Map(episodes.map(e => [e.n, e.temporada]));
+
+    // Anti-spoiler: um episódio só "existe" no site depois da estreia. Vale a Data (com hora) da aba
+    // Episodios; sem Data, vale o vídeo já publicado no canal. Sem nenhum dos dois, fica escondido.
+    const agora = Date.now();
+    const liberado = e => isIntro(e) || (e.estreia != null ? e.estreia <= agora : e.videoMs != null && e.videoMs <= agora);
+    const episodes = todosEpisodios.filter(liberado);
+    const epsLiberados = new Set(episodes.map(e => e.n));
+    const epOk = ep => ep == null || epsLiberados.has(ep);
+    const aguardando = todosEpisodios.filter(e => !liberado(e));
+    const epSeason = new Map(todosEpisodios.map(e => [e.n, e.temporada]));
 
     const games = sheet(wb, 'Jogos')
       .map(r => {
@@ -137,14 +165,16 @@
           gols: []
         };
       })
-      .filter(g => g.id != null && g.res)
+      .filter(g => g.id != null && g.res && epOk(g.ep))
       .sort((a, b) => a.id - b.id);
 
     const byId = new Map(games.map(g => [g.id, g]));
+    // Jogos de episódios que ainda não estrearam: os gols deles ficam escondidos sem gerar aviso.
+    const jogosOcultos = new Set(sheet(wb, 'Jogos').filter(r => !epOk(num(r.episodio))).map(r => num(r.jogo)));
     const warnings = [];
     sheet(wb, 'Gols').forEach(r => {
       const g = byId.get(num(r.jogo));
-      if (!g) { if (r.autor) warnings.push(`Gol de ${r.autor} aponta para o jogo ${r.jogo}, que não existe na aba Jogos.`); return; }
+      if (!g) { if (r.autor && !jogosOcultos.has(num(r.jogo))) warnings.push(`Gol de ${r.autor} aponta para o jogo ${r.jogo}, que não existe na aba Jogos.`); return; }
       if (r.autor) g.gols.push({ autor: String(r.autor), assist: String(r.assistencia || ''), minuto: parseMinute(r.minuto) });
     });
     games.forEach(g => {
@@ -155,7 +185,7 @@
     const tables = new Map();
     sheet(wb, 'Classificacao').forEach(r => {
       const ep = num(r.episodio);
-      if (ep == null || !r.time) return;
+      if (ep == null || !r.time || !epOk(ep)) return;
       const row = { pos: num(r.posicao), time: String(r.time), j: num(r.j) || 0, v: num(r.v) || 0, e: num(r.e) || 0, d: num(r.d) || 0, gp: num(r.gp) || 0, gc: num(r.gc) || 0 };
       row.pts = row.v * 3 + row.e;
       row.sg = row.gp - row.gc;
@@ -201,6 +231,9 @@
     // Elenco = jogadores do elenco atual (até o último episódio).
     const elenco = new Map();
     sheet(wb, 'Elenco').forEach(r => {
+      // Reforço ou cria da base que chega num episódio ainda não lançado só aparece depois da estreia.
+      const chegada = num(r.chegada);
+      if (chegada != null && chegada < 1000 && !epOk(chegada)) return;
       if (r.jogador) elenco.set(norm(r.jogador), {
         nome: String(r.jogador), pos: String(r.posicao || ''), nac: String(r.nacionalidade || ''),
         origem: origemTipo(r.origem), chegada: epNum(r.chegada, r.jogador, 'Chegada'), saida: epNum(r.saida, r.jogador, 'Saida'),
@@ -222,6 +255,7 @@
         };
       })
       .filter(t => {
+        if (!epOk(t.ep)) return false; // transferência de episódio ainda não lançado
         if (!t.jogador) warnings.push(`Transferências: há uma ${t.tipo === 'saida' ? 'saída' : 'chegada'}${t.ep != null ? ` do EP ${t.ep}` : ''}${t.clube ? ` (${t.clube})` : ''} sem o nome do jogador.`);
         return t.jogador;
       })
@@ -294,7 +328,7 @@
 
     return {
       cfg, clube, liga, episodes, games, tables, tableEps, elenco, fotosMap, fotosCorpoMap, clubes, competicoes, transfers, treinador,
-      recordes, metas, titulos, seasons, temporadaAtual, temporadaInfo, campanhaFonte, serie: serie || {}, series: series || [], warnings,
+      recordes, metas, titulos, seasons, temporadaAtual, temporadaInfo, campanhaFonte, serie: serie || {}, series: series || [], aguardando, warnings,
       // A tabela pode ter só os primeiros colocados; o gráfico usa o total da liga.
       totalTimes: num(cfg.totaltimes) ?? 18,
       zonas: {
@@ -1037,6 +1071,13 @@
       avisos.push(M.warnings.length
         ? `<details class="aviso" open><summary>Conferência da planilha: ${plural(M.warnings.length, 'ponto', 'pontos')} para revisar</summary><ul>${M.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>`
         : '<div class="aviso aviso-ok"><b>Conferência da planilha:</b> tudo certo, nenhum ponto para revisar.</div>');
+      // Episódios já na planilha mas escondidos até a estreia.
+      M.aguardando.forEach(e => {
+        const quando = e.estreia != null
+          ? `libera em ${new Date(e.estreia).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+          : 'libera quando o vídeo estiver publicado no canal (ou preencha a Data com dia e hora na aba Episodios)';
+        avisos.push(`<div class="aviso aviso-info"><b>EP ${pad2(e.n)} aguardando estreia:</b> jogos, gols, tabela e transferências desse episódio estão escondidos do público; ${esc(quando)}.</div>`);
+      });
     }
     $avisos.innerHTML = avisos.join('');
   }

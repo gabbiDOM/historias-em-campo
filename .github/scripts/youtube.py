@@ -75,6 +75,9 @@ def via_pagina():
         quando = re.search(r'"content":"((?:há|ha) [^"]+|[^"]* ago)"', bloco)
         if not (vid and titulo):
             continue
+        # Estreia agendada ainda não é vídeo publicado: o site só libera o episódio depois dela.
+        if re.search(r"Estreia|Premiere|UPCOMING|upcomingEvent", bloco):
+            continue
         texto = html.unescape(json.loads(f'"{titulo.group(1)}"'))
         videos.append((vid.group(1), texto, data_relativa(quando.group(1)) if quando else None))
     return videos
