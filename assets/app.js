@@ -380,12 +380,15 @@
 
     // Cada transferência, em ordem de episódio, atualiza a situação do jogador (reforço, emprestado, vendido).
     // A coluna Situacao do Elenco, quando preenchida, tem a palavra final.
-    // Temporada escrita na Observação da saída, quando ainda não chegou ("Sai na temporada 27/28").
-    const saidaFutura = t => {
+    // Temporada escrita na Observação da saída ("Sai na temporada 27/28"). Enquanto essa temporada não
+    // estiver no ar (nenhum episódio dela lançado), o jogador segue no elenco; quando ela começa, sai.
+    const temporadaNoAr = episodes.filter(e => !isIntro(e)).map(e => e.temporada).filter(Boolean).sort().pop() || season(cfg.temporadaatual) || primeiraTemporada;
+    const temporadaDaSaida = t => {
       const m = t.obs.match(/(?:\d{2}|\d{4})\s*[\/-]\s*\d{2,4}/);
       const alvo = m ? season(m[0]) : '';
-      return alvo && alvo > season(cfg.temporadaatual) ? alvo : '';
+      return alvo && alvo > t.temporada ? alvo : '';
     };
+    const saidaFutura = t => { const alvo = temporadaDaSaida(t); return alvo && alvo > temporadaNoAr ? alvo : ''; };
     transfers.forEach(t => {
       const k = norm(t.jogador);
       const p = elenco.get(k) || { nome: t.jogador, pos: t.pos, nac: t.nac, origem: '', situacao: '', situacaoLabel: '', foto: t.foto };
@@ -403,10 +406,13 @@
         p.destinoFuturo = t.clube;
       } else if (!p.situacaoManual) {
         const emprestimo = norm(t.obs).startsWith('empre');
+        // Venda combinada antes para uma temporada que já começou: a saída conta a partir dela.
+        const adiada = temporadaDaSaida(t);
         p.situacao = emprestimo ? 'emprestado' : 'saiu';
         p.situacaoLabel = emprestimo ? 'Emprestado' : t.valor ? 'Vendido' : 'Saiu';
-        p.saida = t.ep;
-        p.saidaTemp = t.temporada;
+        p.saida = adiada ? null : t.ep;
+        p.saidaTemp = adiada || t.temporada;
+        if (adiada) p.destinoFuturo = t.clube;
       }
       elenco.set(k, p);
     });
@@ -1048,7 +1054,8 @@
     const naquela = p => {
       // "Reforço" só na temporada em que o jogador chegou.
       if (atual) return p.origem === 'reforco' && p.chegadaTemp && p.chegadaTemp !== t ? { ...p, origem: '' } : p;
-      const q = { ...p, saidaFutura: '' };
+      // Venda já combinada naquela temporada para uma seguinte: aparece como "Sai em 2027/28".
+      const q = { ...p, saidaFutura: p.destinoFuturo && p.saidaTemp > t && t !== 'todas' ? p.saidaTemp : '' };
       if (t === 'todas') return { ...q, situacao: p.situacao === 'saiu' ? 'saiu-antes' : '', situacaoLabel: '' };
       if (p.origem === 'reforco' && p.chegadaTemp !== t) q.origem = '';
       if (p.saidaTemp === t && p.situacao) return q;
