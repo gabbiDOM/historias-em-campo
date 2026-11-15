@@ -96,11 +96,15 @@ if not entradas:
     sys.exit(0)
 
 for serie in SERIES:
-    # Só entram vídeos cujo título contém o filtro da série.
-    filtro = serie.get("youtube_filtro") or ""
+    # Só entram vídeos cujo título contém um dos filtros da série (texto ou lista de textos;
+    # ex.: "FC 27 Modo Carreira Realista" e "Modo Carreira Realista FC 27").
+    filtros = serie.get("youtube_filtro") or []
+    if isinstance(filtros, str):
+        filtros = [filtros]
+    filtros = [f.lower() for f in filtros if f]
     # Vídeo sem "EP NN" cujo título começa com este texto vira a INTRO (episódio 0).
     intro = serie.get("youtube_intro") or ""
-    if not filtro:
+    if not filtros:
         continue
     saida = pathlib.Path(f"dados/series/{serie['id']}/videos.json")
     # Só os vídeos mais recentes vêm de cada fonte, então os já conhecidos são mantidos.
@@ -108,7 +112,7 @@ for serie in SERIES:
     videos = {v["id"]: v for v in antigos}
 
     for vid, titulo, publicado in entradas:
-        if filtro.lower() not in titulo.lower():
+        if not any(f in titulo.lower() for f in filtros):
             continue
         m = re.search(r"\bEP\s*0*(\d+)", titulo, re.IGNORECASE)
         if m:
