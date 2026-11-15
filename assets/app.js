@@ -680,13 +680,13 @@
       let sep = '';
       if (zn !== ultimaZona) { sep = `<tr class="fc-zona"><td colspan="10">${esc(zn)}</td></tr>`; ultimaZona = zn; }
       else if (prev && r.pos - prev.pos > 1) sep = '<tr class="fc-zona"><td colspan="10">…</td></tr>';
-      return `${sep}<tr class="${norm(r.time) === norm(M.clube) ? 'eu' : ''}">
+      return `${sep}<tr class="${norm(r.time) === norm(M.clube) ? 'eu' : ''}" data-pos="${r.pos}">
         <td class="pos">${r.pos}</td><td class="esq"><span class="fc-clube">${crest(M, r.time, 'mini')}${esc(r.time)}</span></td>
         <td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg > 0 ? '+' : ''}${r.sg}</td><td class="pts">${r.pts}</td></tr>`;
     }).join('');
     return `<div class="tabela-fc">
       <div class="fc-topo">${compLogo(M, M.liga)}<b>${esc(M.liga || 'Classificação')}</b><span>${esc(M.temporadaAtual)} · fim do EP ${pad2(ep)}</span></div>
-      <div class="fc-scroll"><table>
+      <div class="fc-scroll" data-ate="6"><table>
         <thead><tr><th>Pos</th><th class="esq">Clube</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GS</th><th>SG</th><th>Pts</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
@@ -794,6 +794,20 @@
     };
     tick();
     contagemTimer = setInterval(tick, 1000);
+  }
+
+  // Tabela do Início: mostra até o 6º colocado e o resto aparece rolando dentro do card.
+  function ajustarTabela() {
+    $app.querySelectorAll('.fc-scroll[data-ate]').forEach(box => {
+      const ultima = box.querySelector(`tr[data-pos="${box.dataset.ate}"]`);
+      const card = box.closest('.tabela-fc');
+      if (!ultima || !ultima.nextElementSibling) return card.classList.remove('rolavel');
+      box.style.maxHeight = `${ultima.offsetTop + ultima.offsetHeight}px`;
+      card.classList.add('rolavel');
+      const fim = () => card.classList.toggle('no-fim', box.scrollTop + box.clientHeight >= box.scrollHeight - 4);
+      box.addEventListener('scroll', fim, { passive: true });
+      fim();
+    });
   }
 
   // Fotos do treinador alternando a cada 10 segundos (o timer é refeito a cada render).
@@ -921,6 +935,8 @@
       </section>
 
       ${last ? `<section class="secao"><div class="secao-topo"><h2>Último episódio</h2><a href="#episodios">Todos os episódios →</a></div><div class="ep-destaque">${episodeCard(M, last)}</div></section>` : ''}
+
+      ${trofeusInicio(M)}
 
       ${coachSection(M)}
 
@@ -1194,6 +1210,29 @@
         <div class="grid grid-3">${regras.map(m => metaCard(M, m)).join('')}</div></section>` : ''}`;
   }
 
+  // Troféu de cada título: assets/trofeus/<nome-do-campeonato>.png (ex.: "2. Bundesliga" -> 2-bundesliga.png).
+  // Sem arquivo, fica uma taça desenhada.
+  const slug = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const TACA_SVG = '<svg class="vitrine-taca" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3zm0 4H6v1a2 2 0 0 0 1 1.7V7zm10 0v2.7A2 2 0 0 0 18 8V7h-1z"/></svg>';
+  // Vitrine: troféu sob um foco de luz, num pedestal, com a placa do título embaixo.
+  function vitrine(t) {
+    // Se a imagem não existir, a classe "falhou" a esconde e mostra a taça desenhada logo depois dela.
+    const img = `<img src="assets/trofeus/${slug(t.comp)}.png" alt="Troféu: ${esc(t.comp)}" loading="lazy" onerror="this.classList.add('falhou')">${TACA_SVG}`;
+    return `<figure class="vitrine">
+      <div class="vitrine-palco"><span class="vitrine-foco" aria-hidden="true"></span>${img}<span class="vitrine-pedestal" aria-hidden="true"></span></div>
+      <figcaption class="vitrine-placa"><small>Campeão · ${esc(t.temporada)}</small><b>${esc(t.comp)}</b>${t.obs ? `<p>${esc(t.obs)}</p>` : ''}</figcaption>
+    </figure>`;
+  }
+  // Faixa do Início: os títulos da carreira, do mais recente para o mais antigo.
+  function trofeusInicio(M) {
+    if (!M.titulos.length) return '';
+    const lista = [...M.titulos].sort((a, b) => String(b.temporada).localeCompare(String(a.temporada)));
+    return `<section class="secao sala-trofeus">
+      <div class="secao-topo"><div><small class="sobretitulo">Sala de troféus</small><h2>${lista.length === 1 ? 'Título conquistado' : `${lista.length} títulos conquistados`}</h2></div><a href="#recordes">Recordes e história →</a></div>
+      <div class="vitrines">${lista.map(vitrine).join('')}</div>
+    </section>`;
+  }
+
   function pageRecordes(M) {
     const car = careerRecords(M);
     const reais = M.recordes.find(r => r.chave === 'titulos');
@@ -1209,7 +1248,7 @@
       <section class="secao">
         <div class="card"><h3>Sala de troféus</h3>
           <p class="mudo" style="margin:6px 0 4px">Na carreira</p>
-          <ul class="lista-simples">${M.titulos.map(t => `<li><div class="trofeu">${trofeuIc}<div><b>${esc(t.comp)}</b><small>${esc(t.temporada)}${t.obs ? ' · ' + esc(t.obs) : ''}</small></div></div></li>`).join('') || '<li class="mudo">Nenhum título ainda. A história está sendo escrita.</li>'}</ul>
+          ${M.titulos.length ? `<div class="vitrines">${[...M.titulos].sort((a, b) => String(b.temporada).localeCompare(String(a.temporada))).map(vitrine).join('')}</div>` : '<ul class="lista-simples"><li class="mudo">Nenhum título ainda. A história está sendo escrita.</li></ul>'}
           ${reais && reais.obs ? `<p class="mudo" style="margin:14px 0 4px">História real do clube</p><ul class="lista-simples">${reais.obs.split(/·|;|\n/).map(s => s.trim()).filter(Boolean).map(s => `<li><div class="trofeu">${trofeuIc}<b>${esc(s)}</b></div></li>`).join('')}</ul>` : ''}
         </div>
       </section>
@@ -1229,6 +1268,7 @@
     $app.innerHTML = pages[page](MODEL, arg);
     startSlides();
     startCountdown();
+    ajustarTabela();
     if (page !== lastPage) window.scrollTo(0, 0);
     lastPage = page;
   }

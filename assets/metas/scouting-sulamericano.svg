@@ -1,24 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- Scouting: no mínimo 5 argentinos no elenco. Faixas celeste e branca, sol e cinco camisas -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#123a2a"/><stop offset="1" stop-color="#06140d"/></linearGradient>
-    <pattern id="grade" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0v32" fill="none" stroke="#8ee53f" stroke-opacity=".08"/></pattern>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10324a"/><stop offset="1" stop-color="#06121c"/></linearGradient>
   </defs>
   <rect width="640" height="360" fill="url(#bg)"/>
-  <rect width="640" height="360" fill="url(#grade)"/>
-  <!-- América do Sul simplificada -->
-  <path d="M300 34l58 6 52 26 58 38 18 34-22 50-34 30-30 20-24 30-14 28-16 34-14 20-6-22 6-40-8-44-10-46-14-40-20-36-6-30 8-24z"
-        fill="#1f5f31" stroke="#8ee53f" stroke-width="2.5" stroke-linejoin="round"/>
-  <!-- alvos: Brasil, Argentina, Uruguai, Colômbia, Chile -->
-  <g fill="#8ee53f">
-    <circle cx="400" cy="140" r="7"/><circle cx="350" cy="262" r="7"/><circle cx="380" cy="246" r="6"/><circle cx="296" cy="70" r="6"/><circle cx="312" cy="250" r="6"/>
+  <g opacity=".14"><rect y="0" width="640" height="120" fill="#74acdf"/><rect y="240" width="640" height="120" fill="#74acdf"/></g>
+  <!-- sol de maio -->
+  <g transform="translate(520 92)" fill="#f6c343">
+    <circle r="26"/>
+    <g stroke="#f6c343" stroke-width="5" stroke-linecap="round">
+      <path d="M0-36v-16M0 36v16M-36 0h-16M36 0h16M25-25l11-11M-25 25l-11 11M25 25l11 11M-25-25l-11-11"/>
+    </g>
   </g>
-  <g fill="none" stroke="#8ee53f" stroke-opacity=".5"><circle cx="400" cy="140" r="16"/><circle cx="350" cy="262" r="16"/></g>
-  <!-- lupa do scout -->
-  <g transform="translate(470 230)">
-    <circle r="52" fill="#8ee53f" fill-opacity=".08" stroke="#fff" stroke-width="7"/>
-    <path d="M38 38l48 48" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
-    <path d="M-30 0h60M0-30v60" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
+  <!-- cinco camisas listradas -->
+  <defs>
+    <g id="camisa">
+      <path d="M-26-30l14-8h24l14 8 16 18-12 12-8-6v46h-44v-46l-8 6-12-12z" fill="#fff"/>
+      <path d="M-14-38h8v84h-8zM6-38h8v84h-8z" fill="#74acdf"/>
+      <path d="M-8-38a8 8 0 0 0 16 0" fill="none" stroke="#10324a" stroke-width="3"/>
+    </g>
+  </defs>
+  <g transform="translate(0 228)">
+    <use href="#camisa" x="96"/><use href="#camisa" x="186"/><use href="#camisa" x="276"/><use href="#camisa" x="366"/><use href="#camisa" x="456"/>
   </g>
-  <text x="44" y="310" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="64" fill="#fff" opacity=".9">5+</text>
-  <text x="46" y="334" font-family="Arial, sans-serif" font-weight="700" font-size="13" fill="#8ee53f" letter-spacing="2">SUL-AMERICANOS</text>
+  <!-- lupa do scout sobre a primeira -->
+  <g transform="translate(96 210)" fill="none" stroke="#fff" stroke-linecap="round">
+    <circle r="50" stroke-width="6" stroke-opacity=".9"/><path d="M36 36l28 28" stroke-width="12"/>
+  </g>
+  <text x="44" y="96" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="72" fill="#fff">5+</text>
+  <text x="48" y="122" font-family="Arial, sans-serif" font-weight="700" font-size="14" letter-spacing="3" fill="#74acdf">ARGENTINOS NO ELENCO</text>
 </svg>

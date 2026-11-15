@@ -455,6 +455,58 @@ tr.fora td { opacity: .65; }
 .tabela-fc .fc-zona td { background: #13233b; color: #9fb0c8; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 4px; border-bottom: 0; }
 .fc-clube { display: inline-flex; align-items: center; gap: 8px; }
 .tabela-fc .escudo-clube { background: #fff; }
+/* Início: até o 6º colocado à mostra; o resto rola dentro do card, com o cabeçalho fixo */
+.tabela-fc { position: relative; }
+.fc-scroll { position: relative; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #2b4266 transparent; }
+.tabela-fc.rolavel .fc-scroll { overflow-y: auto; }
+.tabela-fc.rolavel th { position: sticky; top: 0; z-index: 1; background: #0e1a2b; }
+.tabela-fc.rolavel::after {
+  content: "▾  deslize para ver a tabela completa"; display: block; padding: 9px 0; border-top: 1px solid #22344f;
+  text-align: center; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #9fb0c8; background: #13233b; transition: opacity .2s;
+}
+.tabela-fc.rolavel.no-fim::after { content: "▴  fim da tabela"; opacity: .7; }
+
+/* ---------- sala de troféus: vitrine com foco de luz, pedestal e placa ---------- */
+.vitrines { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.vitrine { margin: 0; border-radius: var(--radius); overflow: hidden; background: #0b1510; border: 1px solid #23382a; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.vitrine-palco {
+  position: relative; height: 230px; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(ellipse 60% 70% at 50% 0%, rgba(255, 255, 255, .16), transparent 70%),
+              linear-gradient(180deg, #13261a 0%, #0b1510 75%);
+}
+/* cone de luz vindo de cima */
+.vitrine-foco { position: absolute; top: -20px; left: 50%; width: 200px; height: 260px; transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 85%); clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%); filter: blur(6px); }
+.vitrine-palco img, .vitrine-taca { position: relative; z-index: 1; width: 150px; height: 150px; object-fit: contain; margin-bottom: 26px;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .55)) drop-shadow(0 0 22px rgba(255, 255, 255, .12)); transition: transform .4s ease; }
+.vitrine:hover .vitrine-palco img { transform: translateY(-4px) rotate(-2deg); }
+.vitrine-taca { display: none; color: #e2b84c; padding: 18px; }
+.vitrine-palco img.falhou { display: none; }
+.vitrine-palco img.falhou + .vitrine-taca { display: block; }
+/* pedestal e reflexo no chão */
+.vitrine-pedestal { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); width: 170px; height: 22px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(142, 229, 63, .35), rgba(142, 229, 63, 0) 70%); }
+.vitrine-placa { padding: 14px 16px 16px; background: linear-gradient(180deg, #1c2e22, #132119); border-top: 2px solid #c9a24a; color: #e7eee9; flex: 1; }
+.vitrine-placa small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #e2b84c; font-weight: 700; }
+.vitrine-placa b { display: block; font: 700 24px/1.15 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .03em; margin: 2px 0 6px; }
+.vitrine-placa p { margin: 0; font-size: 13px; line-height: 1.5; color: #b9c7bd; }
+/* um título só: vitrine larga, troféu à esquerda e placa grande à direita */
+@media (min-width: 640px) {
+  .vitrine:only-child { flex-direction: row; grid-column: 1 / -1; }
+  .vitrine:only-child .vitrine-palco { flex: 0 0 42%; height: 300px; }
+  .vitrine:only-child .vitrine-palco img, .vitrine:only-child .vitrine-taca { width: 210px; height: 210px; }
+  .vitrine:only-child .vitrine-placa { border-top: 0; border-left: 3px solid #c9a24a; display: flex; flex-direction: column; justify-content: center; padding: 28px 32px; position: relative; overflow: hidden; }
+  .vitrine:only-child .vitrine-placa b { font-size: 44px; }
+  .vitrine:only-child .vitrine-placa p { font-size: 15px; max-width: 46ch; }
+  .vitrine:only-child .vitrine-placa::after { content: "★"; position: absolute; right: 18px; bottom: -34px; font-size: 170px; line-height: 1; color: #c9a24a; opacity: .08; }
+  .pagina-historia .vitrine:only-child .vitrine-placa b { font-size: 34px; }
+}
+/* na página de recordes (estilo arquivo), a placa vira latão sobre madeira */
+.pagina-historia .vitrine { border-color: #6b4a22; }
+.pagina-historia .vitrine-placa { background: linear-gradient(180deg, #4a3118, #34210f); border-top-color: #d8b062; }
+.pagina-historia .vitrine-placa b { font: 700 20px/1.2 var(--serif); text-transform: none; letter-spacing: 0; color: #f6e7c6; }
+.pagina-historia .vitrine-placa p { font-family: var(--serif); font-style: italic; color: #d9c49b; }
+.pagina-historia .vitrines { margin-top: 10px; }
 
 /* ---------- jogos ---------- */
 .aviso-spoiler { color: var(--muted); font-size: 14px; margin: -4px 0 16px; }

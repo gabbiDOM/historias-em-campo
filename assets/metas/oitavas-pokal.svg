@@ -1,25 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- Chegar às quartas da DFB-Pokal: chave do mata-mata com a fase das quartas em destaque -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#211a0a"/><stop offset="1" stop-color="#0a0806"/></linearGradient>
     <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbe9a6"/><stop offset="1" stop-color="#b8892b"/></linearGradient>
   </defs>
   <rect width="640" height="360" fill="url(#bg)"/>
-  <g stroke="#d4af37" stroke-opacity=".08" stroke-width="1"><path d="M-20 360L340 0M60 360L420 0M140 360L500 0M220 360L580 0M300 360L660 0"/></g>
-  <!-- chave do mata-mata: 8 -> 4 -> 2 -> final -->
-  <g fill="none" stroke="#d4af37" stroke-width="3" stroke-opacity=".75" stroke-linecap="round">
-    <path d="M40 50h60v40h-60M40 130h60v-40M100 70h50"/><path d="M40 170h60v40h-60M40 250h60v-40M100 190h50"/>
-    <path d="M150 70v120M150 130h60"/><path d="M40 290h60v40h-60M100 310h50v-60"/>
-    <path d="M600 50h-60v40h60M600 130h-60v-40M540 70h-50"/><path d="M600 170h-60v40h60M600 250h-60v-40M540 190h-50"/>
-    <path d="M490 70v120M490 130h-60"/><path d="M600 290h-60v40h60M540 310h-50v-60"/>
-    <path d="M210 130v60h40M430 130v60h-40"/>
+  <g stroke="#d4af37" stroke-opacity=".07"><path d="M-20 360L340 0M60 360L420 0M140 360L500 0M220 360L580 0M300 360L660 0"/></g>
+  <!-- faixa da fase-alvo (quartas), dos dois lados -->
+  <g fill="#8ee53f" opacity=".1"><rect x="112" y="40" width="76" height="290" rx="10"/><rect x="452" y="40" width="76" height="290" rx="10"/></g>
+  <!-- oitavas (4 por lado) -> quartas (2) -> semi (1) -->
+  <g fill="none" stroke="#d4af37" stroke-opacity=".55" stroke-width="3" stroke-linecap="round">
+    <path d="M30 80h56M30 130h56M86 80v50M86 105h40"/><path d="M30 240h56M30 290h56M86 240v50M86 265h40"/>
+    <path d="M610 80h-56M610 130h-56M554 80v50M554 105h-40"/><path d="M610 240h-56M610 290h-56M554 240v50M554 265h-40"/>
+    <path d="M174 105h40v160h-40M214 185h40"/><path d="M466 105h-40v160h40M426 185h-40"/>
   </g>
-  <!-- rótulo da fase-alvo -->
-  <g font-family="Arial, sans-serif" font-weight="700" fill="#e8c766">
-    <text x="150" y="40" text-anchor="middle" font-size="13" letter-spacing="2">OITAVAS</text>
-    <text x="490" y="40" text-anchor="middle" font-size="13" letter-spacing="2">OITAVAS</text>
+  <!-- vagas das quartas -->
+  <g fill="#0b1d12" stroke="#8ee53f" stroke-width="3">
+    <rect x="126" y="92" width="48" height="26" rx="6"/><rect x="126" y="252" width="48" height="26" rx="6"/>
+    <rect x="466" y="92" width="48" height="26" rx="6"/><rect x="466" y="252" width="48" height="26" rx="6"/>
   </g>
-  <!-- eliminação na 2ª fase -->
-  <g stroke="#e5333a" stroke-width="7" stroke-linecap="round"><path d="M86 176l28 28M114 176l-28 28"/></g>
+  <!-- o Wolfsburg numa das vagas -->
+  <rect x="126" y="92" width="48" height="26" rx="6" fill="#8ee53f"/>
+  <text x="150" y="110" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="15" fill="#0b1d12">W</text>
+  <g font-family="Arial, sans-serif" font-weight="700" font-size="13" letter-spacing="2" fill="#8ee53f" text-anchor="middle">
+    <text x="150" y="62">QUARTAS</text><text x="490" y="62">QUARTAS</text>
+  </g>
   <!-- taça no centro -->
   <g fill="url(#ouro)">
     <path d="M288 140h64v26a32 32 0 0 1-64 0z"/>
