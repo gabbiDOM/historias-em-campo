@@ -144,6 +144,151 @@
       "wikidata": "Q155218",
       "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_of_Rot-Weiss_Essen.svg?width=160",
       "estadio": "Stadion an der Hafenstraße"
+    },
+    "Anderlecht": {
+      "wikidata": "Q187528",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/en/thumb/7/77/R.S.C._Anderlecht.svg/250px-R.S.C._Anderlecht.svg.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Lotto Park"
+    },
+    "Bayer 04 Leverkusen": {
+      "wikidata": "Q104761",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_TSV_Bayer_04_Leverkusen.svg?width=160",
+      "estadio": "BayArena"
+    },
+    "Bayern Munchen": {
+      "wikidata": "Q15789",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/FC_Bayern_M%C3%BCnchen_logo_%282024%29.svg?width=160",
+      "estadio": "Allianz-Arena"
+    },
+    "Borussia Dortmund": {
+      "wikidata": "Q41420",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Borussia_Dortmund_logo.svg?width=160",
+      "estadio": "Signal Iduna Park"
+    },
+    "Copenhague": {
+      "wikidata": "Q188430",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/1/18/Logo_FC_Kopenhagen.svg/250px-Logo_FC_Kopenhagen.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Parken"
+    },
+    "Crystal Palace": {
+      "wikidata": "Q19467",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/b/bf/Crystal_Palace_F.C._logo_%282013%29.png/250px-Crystal_Palace_F.C._logo_%282013%29.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Selhurst Park"
+    },
+    "FC Augsburg": {
+      "wikidata": "Q15755",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/b/b5/Logo_FC_Augsburg.svg/250px-Logo_FC_Augsburg.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "WWK ARENA"
+    },
+    "FC Bayern München": {
+      "wikidata": "Q15789",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/FC_Bayern_M%C3%BCnchen_logo_%282024%29.svg?width=160",
+      "estadio": "Allianz-Arena"
+    },
+    "FC Koln": {
+      "wikidata": "Q104770",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_Koeln_Logo_2014%E2%80%93.svg?width=160",
+      "estadio": "RheinEnergieStadion"
+    },
+    "FC Schalke 04": {
+      "wikidata": "Q32494",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/FC_Schalke_04_Logo.svg?width=160",
+      "estadio": "Veltins-Arena"
+    },
+    "Fenerbahçe": {
+      "wikidata": "Q6601875",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/7/7b/Fenerbah%C3%A7e_SK_120-Jahres-Sternelogo.png/250px-Fenerbah%C3%A7e_SK_120-Jahres-Sternelogo.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Şükrü-Saracoğlu-Stadion"
+    },
+    "Frankfurt": {
+      "wikidata": "Q38245",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/3/32/Logo_Eintracht_Frankfurt_1998.svg/250px-Logo_Eintracht_Frankfurt_1998.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Deutsche Bank Park"
+    },
+    "Hamburg": {
+      "wikidata": "Q51974",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Hamburger_SV_logo.svg?width=160",
+      "estadio": "Volksparkstadion"
+    },
+    "Hamburgo": {
+      "wikidata": "Q762353",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/e/ee/ECNovoHamburgo_Logo.svg/250px-ECNovoHamburgo_Logo.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Estádio do Vale"
+    },
+    "Hoffenheim": {
+      "wikidata": "Q22707",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/TSG_Logo-Standard_4c.png?width=160",
+      "estadio": "SNP Arena"
+    },
+    "Kaiserslautern": {
+      "wikidata": "Q8466",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_1_FC_Kaiserslautern.svg?width=160",
+      "estadio": "Fritz-Walter-Stadion"
+    },
+    "Koln": {
+      "wikidata": "Q104770",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_Koeln_Logo_2014%E2%80%93.svg?width=160",
+      "estadio": "RheinEnergieStadion"
+    },
+    "Leverkusen": {
+      "wikidata": "Q104761",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_TSV_Bayer_04_Leverkusen.svg?width=160",
+      "estadio": "BayArena"
+    },
+    "Lyon": {
+      "wikidata": "Q704",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/f/f1/Olympique_Lyon.svg/250px-Olympique_Lyon.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Parc Olympique lyonnais"
+    },
+    "M'gladbach": {
+      "wikidata": "Q101959",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Borussia_M%C3%B6nchengladbach_logo.svg?width=160",
+      "estadio": "ista-Borussia-Park"
+    },
+    "Mainz 05": {
+      "wikidata": "Q105254",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_Mainz_05.svg?width=160",
+      "estadio": "Mewa Arena"
+    },
+    "OGC Nice": {
+      "wikidata": "Q185163",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/OGC_Nice_%28simplified_logo%29.svg?width=160",
+      "estadio": "Stade de Nice"
+    },
+    "RB Leipzig": {
+      "wikidata": "Q702455",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/2019-07-12_Fu%C3%9Fball%3B_Freundschaftsspiel_RB_Leipzig_-_FC_Z%C3%BCrich_1DX_0881_by_Stepro_2.png?width=160",
+      "estadio": "Red Bull Arena"
+    },
+    "Racing Club": {
+      "wikidata": "Q276533",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Escudo_de_Racing_Club_%282014%29.svg?width=160",
+      "estadio": "Estadio Presidente Perón"
+    },
+    "Real Madrid": {
+      "wikidata": "Q8682",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/3/3f/Real_Madrid_Logo.svg/250px-Real_Madrid_Logo.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Bernabéu"
+    },
+    "SC Freiburg": {
+      "wikidata": "Q106394",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/b/bf/SC_Freiburg_Logo.svg/250px-SC_Freiburg_Logo.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Europa-Park-Stadion"
+    },
+    "Stuttgart": {
+      "wikidata": "Q4512",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfB_Stuttgart_1893_Logo.svg?width=160",
+      "estadio": "MHPArena"
+    },
+    "Valencia": {
+      "wikidata": "Q10333",
+      "escudo": "https://thumb.wikimedia.org/wikipedia/de/thumb/7/75/FC_Valencia.svg/250px-FC_Valencia.svg.png?utm_source=de.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "estadio": "Estadio Mestalla"
+    },
+    "Werder Bremen": {
+      "wikidata": "Q51976",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/SV-Werder-Bremen-Logo.svg?width=160",
+      "estadio": "Weserstadion"
     }
   },
   "competicoes": {
@@ -154,6 +299,10 @@
     "DFB-Pokal": {
       "wikidata": "Q150880",
       "logo": "https://commons.wikimedia.org/wiki/Special:FilePath/DFB-Pokal_Wordmark.svg?width=160"
+    },
+    "Bundesliga": {
+      "wikidata": "Q82595",
+      "logo": "https://commons.wikimedia.org/wiki/Special:FilePath/Bundesliga_logo.svg?width=160"
     }
   }
 }
