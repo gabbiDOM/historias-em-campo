@@ -1168,7 +1168,9 @@
   function metaAtual(M, m) {
     // A contagem automática olha o elenco de hoje: só vale para meta da temporada atual.
     // "argentinos" conta só a Argentina; "sulamericanos", a América do Sul toda.
-    if (m.chave === 'argentinos' && (!m.temporada || m.temporada === M.temporadaAtual)) return [...M.elenco.values()].filter(p => p.doElenco && !p.situacao && norm(p.nac) === 'argentina').length;
+    // Se a descrição da meta fala em argentinos, a chave "sulamericanos" também conta só a Argentina.
+    const soArgentinos = m.chave === 'argentinos' || (m.chave === 'sulamericanos' && /argentin/i.test(`${m.meta} ${m.obs}`));
+    if (soArgentinos && (!m.temporada || m.temporada === M.temporadaAtual)) return [...M.elenco.values()].filter(p => p.doElenco && !p.situacao && norm(p.nac) === 'argentina').length;
     if (m.chave === 'sulamericanos' && (!m.temporada || m.temporada === M.temporadaAtual)) return [...M.elenco.values()].filter(p => p.doElenco && !p.situacao && SUL_AMERICA.includes(norm(p.nac))).length;
     return m.atual;
   }
