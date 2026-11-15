@@ -1206,14 +1206,14 @@
   function pageMetas(M) {
     // Meta sem Temporada é da temporada atual (metas antigas ficam guardadas quando têm a Temporada
     // preenchida); regra sem Temporada vale para a carreira toda.
-    const t = temporadaEscolhida(M, false);
+    const t = M.temporadaAtual; // Metas mostram sempre a temporada atual, sem seletor
     const todas = M.metas.filter(m => m.regra ? !m.temporada || m.temporada === t : (m.temporada || M.temporadaAtual) === t);
     const metas = todas.filter(m => !m.regra), regras = todas.filter(m => m.regra);
     const statusDe = m => { const a = metaAtual(M, m); return m.alvo != null && a != null && a >= m.alvo ? 'concluida' : statusCls(m.status); };
     const conta = c => metas.filter(m => statusDe(m) === c).length;
     const nome = M.temporadaInfo.nome ? `${esc(M.temporadaInfo.nome)} · ` : '';
     return `<div class="secao-topo"><div><h2>Metas da temporada</h2><span class="mudo">${nome}${esc(t)}</span></div>
-        <div class="filtros">${seasonSelect(M, false)}<span class="mudo">${conta('concluida')} concluídas · ${conta('andamento')} em andamento · ${conta('falhou')} não alcançadas</span></div></div>
+        <div class="filtros"><span class="mudo">${conta('concluida')} concluídas · ${conta('andamento')} em andamento · ${conta('falhou')} não alcançadas</span></div></div>
       ${metas.length ? `<div class="grid grid-3">${metas.map(m => metaCard(M, m)).join('')}</div>` : `<p class="estado">${t === M.temporadaAtual ? 'Cadastre as metas desta temporada na aba Metas da planilha (coluna Temporada).' : 'Nenhuma meta registrada nesta temporada.'}</p>`}
       ${regras.length ? `<section class="secao"><div class="secao-topo"><h2>Regras da carreira</h2><span class="mudo">O que vale em toda a série</span></div>
         <div class="grid grid-3">${regras.map(m => metaCard(M, m)).join('')}</div></section>` : ''}`;
