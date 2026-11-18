@@ -160,13 +160,21 @@
     // Vídeo já ligado a um episódio da planilha (pelo link) diz a temporada; os outros seguem a ordem
     // de publicação, e o número voltando a diminuir marca a temporada seguinte.
     let temporada = ordem[0] || '', ultimo = null;
-    // Vídeo sem "EP NN" no título só entra se a planilha já tiver o link dele.
-    const lista = videos.videos.filter(v => v.id && (v.episodio != null || porVideo.has(v.id)))
+    // Vídeo sem "EP NN" no título entra se a planilha já tiver o link dele, ou se saiu depois do
+    // último vídeo ligado: aí ele é o episódio seguinte (o site libera sem esperar a planilha).
+    const ligadoMs = Math.max(0, ...videos.videos.filter(v => porVideo.has(v.id)).map(v => Date.parse(v.publicado) || 0));
+    const lista = videos.videos.filter(v => v.id && (v.episodio != null || porVideo.has(v.id) || (ligadoMs && Date.parse(v.publicado) > ligadoMs)))
       .sort((a, b) => String(a.publicado || '').localeCompare(String(b.publicado || '')));
-    lista.forEach(v => {
-      let e = porVideo.get(v.id);
+    lista.forEach(vid => {
+      let v = vid, e = porVideo.get(v.id);
       if (e) { temporada = e.temporada; ultimo = e.n; }
-      else {
+      else if (v.episodio == null) {
+        if (ultimo == null) return;
+        ultimo += 1;
+        e = byK.get(chaveEp(temporada, ultimo));
+        if (e && ytId(e.link) && ytId(e.link) !== v.id) return;
+        v = { ...v, episodio: ultimo };
+      } else {
         if (ultimo != null && v.episodio < ultimo) temporada = ordem[ordem.indexOf(temporada) + 1] || proximaTemporada(temporada) || temporada;
         e = byK.get(chaveEp(temporada, v.episodio));
         ultimo = v.episodio;
