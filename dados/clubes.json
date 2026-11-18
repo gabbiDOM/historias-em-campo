@@ -289,6 +289,36 @@
       "wikidata": "Q51976",
       "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/SV-Werder-Bremen-Logo.svg?width=160",
       "estadio": "Weserstadion"
+    },
+    "1. FC Köln": {
+      "wikidata": "Q104770",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/1._FC_Koeln_Logo_2014%E2%80%93.svg?width=160",
+      "estadio": "RheinEnergieStadion"
+    },
+    "1. FSV Mainz 05": {
+      "wikidata": "Q105254",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Logo_Mainz_05.svg?width=160",
+      "estadio": "Mewa Arena"
+    },
+    "Hamburger SV": {
+      "wikidata": "Q51974",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/Hamburger_SV_logo.svg?width=160",
+      "estadio": "Volksparkstadion"
+    },
+    "SV Werder Bremen": {
+      "wikidata": "Q51976",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/SV-Werder-Bremen-Logo.svg?width=160",
+      "estadio": "Weserstadion"
+    },
+    "TSG Hoffenheim": {
+      "wikidata": "Q22707",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/TSG_Logo-Standard_4c.png?width=160",
+      "estadio": "SNP Arena"
+    },
+    "VfB Stuttgart": {
+      "wikidata": "Q4512",
+      "escudo": "https://commons.wikimedia.org/wiki/Special:FilePath/VfB_Stuttgart_1893_Logo.svg?width=160",
+      "estadio": "MHPArena"
     }
   },
   "competicoes": {
